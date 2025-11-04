@@ -174,9 +174,11 @@
 .footer__rights {
   width: 100%;
   text-align: center;
-  padding: 18px 0 8px 0;
+  padding: 20px 90px;
   color: var(--muted);
   margin-top: 28px;
+  display: flex;
+  justify-content: space-between;
 }
 
 /* ====== Center type ====== */
@@ -253,11 +255,12 @@
   opacity: 0.9;
   transition: all 0.2s ease-in-out;
   color: var(--text-primary);
+  cursor: pointer;
 
   &:hover {
     opacity: 1;
     transform: scale(1.1);
-    color: var(--tertiary-color);
+    color: var(--secondary-color);
   }
 }
 

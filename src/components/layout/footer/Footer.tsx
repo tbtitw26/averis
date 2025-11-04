@@ -56,7 +56,6 @@ const Footer: React.FC = () => {
 
     const PaymentMethods = () => (
         <div className={styles["footer__payments"]}>
-            <div className={styles["footer__column-title"]}>Payment Methods</div>
             <div className={styles.paymentsContent}>
                 <FaCcVisa className={styles.paymentIcon} />
                 <FaCcMastercard className={styles.paymentIcon} />
@@ -186,8 +185,6 @@ const Footer: React.FC = () => {
                                 <LegalBlock />
                             </div>
                         )}
-
-                        <PaymentMethods />
 
                         {/* 🔹 Колонка соцмереж */}
                         <div className={styles["footer__column"]}>
@@ -342,6 +339,7 @@ const Footer: React.FC = () => {
 
             <div className={styles["footer__rights"]}>
                 © {new Date().getFullYear()} All rights reserved.
+                <PaymentMethods />
             </div>
         </footer>
     );

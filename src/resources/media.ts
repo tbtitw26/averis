@@ -18,6 +18,10 @@ import image14 from "@/assets/images/image14.jpg";
 import review1 from "@/assets/images/review1.png";
 import review2 from "@/assets/images/review2.png";
 import review3 from "@/assets/images/review3.png";
+import review4 from "@/assets/images/review4.jpg";
+import review5 from "@/assets/images/review5.jpg";
+import review6 from "@/assets/images/review6.jpg";
+
 
 import team1 from "@/assets/images/team1.jpg";
 import team2 from "@/assets/images/team2.jpg";
@@ -53,6 +57,9 @@ export const media = {
     review1: review1,
     review2: review2,
     review3: review3,
+    review4: review4,
+    review5: review5,
+    review6: review6,
 
     coach1: coach1,
     coach2: coach2,

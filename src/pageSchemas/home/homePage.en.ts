@@ -96,11 +96,6 @@ Whether your goal is to lose weight, build muscle, or regain balance — your tr
                         "Use tokens to book a plan, nutrition add-on, or follow-up consultation.",
                 },
                 {
-                    title: "Fill Out Your Fitness Profile",
-                    description:
-                        "Share your goals, schedule, medical conditions, and preferences.",
-                },
-                {
                     title: "Trainer Creates Your Plan",
                     description:
                         "Within 24h you receive a fully tailored workout designed by your coach.",
@@ -109,11 +104,6 @@ Whether your goal is to lose weight, build muscle, or regain balance — your tr
                     title: "Add AI Assistant (Optional)",
                     description:
                         "AI helps track your performance and dynamically adjust sets, reps, and rest times.",
-                },
-                {
-                    title: "Get Optional Nutrition Plan",
-                    description:
-                        "Your coach can add a meal plan synced to your training goals and dietary style.",
                 },
             ],
         },
@@ -311,11 +301,18 @@ So we built a platform where real coaches design programs with AI support — me
                 ],
             },
             right: {
-                type: "card",
-                image: "image4",
+                type: "custom",
+                component: "InfoBlock",
                 title: "Track Every Rep & Meal",
+                image: "image4",
                 description:
                     "Monitor progress with beautiful analytics — powered by AI, guided by your trainer.",
+                bullets: [
+                    "Smart nutrition logging and meal plans",
+                    "Automatic progress sync from wearable devices",
+                    "Performance charts for each workout",
+                    "Trainer feedback directly in the app",
+                ],
                 buttonText: "Start Tracking",
                 buttonLink: "/profile",
             },
@@ -332,14 +329,14 @@ So we built a platform where real coaches design programs with AI support — me
                 {
                     name: "Anna Rossi",
                     role: "Entrepreneur",
-                    image: "review1",
+                    image: "review6",
                     text: "My trainer helped me get back in shape after years of struggle. Weekly calls kept me motivated!",
                     rating: 5,
                 },
                 {
                     name: "Liam Carter",
                     role: "Student",
-                    image: "review2",
+                    image: "review5",
                     text: "AI plan was a great start, but adding a trainer made all the difference — real human feedback matters.",
                     rating: 5,
                 },
@@ -353,8 +350,15 @@ So we built a platform where real coaches design programs with AI support — me
                 {
                     name: "Mark Evans",
                     role: "Engineer",
-                    image: "review4",
+                    image: "review1",
                     text: "Best decision I made. My trainer adapted the plan to my injuries and I’ve gained strength safely.",
+                    rating: 5,
+                },
+                {
+                    name: "Rachel Kim",
+                    role: "Marketing Specialist",
+                    image: "review4",
+                    text: "The community support and challenges kept me accountable. Lost 15kg in 3 months!",
                     rating: 5,
                 },
             ],

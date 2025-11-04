@@ -132,6 +132,9 @@ export type InfoBlock = {
     image?: string;      // ключ з media
     bullets?: string[];
     align?: "left" | "center" | "right";
+
+    buttonText?: string;
+    buttonLink?: string;
 };
 
 export type ValuesIconsBlock = {

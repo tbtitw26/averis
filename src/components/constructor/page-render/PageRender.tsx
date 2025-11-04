@@ -130,6 +130,8 @@ function RenderCustom(b: CustomBlock) {
                     image={b.image ? resolveMedia(b.image) : undefined}
                     bullets={b.bullets}
                     align={b.align}
+                    buttonText={b.buttonText}
+                    buttonLink={b.buttonLink}
                 />
             );
 

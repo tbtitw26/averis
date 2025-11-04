@@ -3,6 +3,7 @@ import React from "react";
 import styles from "./InfoBlock.module.scss";
 import Media from "../image/Media";
 import Text from "../text/Text";
+import ButtonUI from "@/components/ui/button/ButtonUI";
 
 interface InfoBlockProps {
     title?: string;
@@ -11,6 +12,8 @@ interface InfoBlockProps {
     image?: string;
     bullets?: string[];
     align?: "left" | "center" | "right";
+    buttonText?: string;
+    buttonLink?: string;
 }
 
 const InfoBlock: React.FC<InfoBlockProps> = ({
@@ -20,6 +23,8 @@ const InfoBlock: React.FC<InfoBlockProps> = ({
                                                  image,
                                                  bullets,
                                                  align = "left",
+                                                 buttonText,
+                                                 buttonLink,
                                              }) => {
     return (
         <div className={`${styles.infoBlock} ${styles[align]}`}>
@@ -46,6 +51,21 @@ const InfoBlock: React.FC<InfoBlockProps> = ({
                 centerDescription={align === "center"}
                 centerBullets={align === "center"}
             />
+
+            {buttonText && buttonLink && (
+                <a href={buttonLink} rel="noopener noreferrer" className={styles.buttonWrapper}>
+                    <ButtonUI
+                        variant="solid"
+                        shape="rounded"
+                        size="md"
+                        textColor="quaternary"
+                        color="primary"
+                        hoverEffect="shadow"
+                    >
+                        {buttonText}
+                    </ButtonUI>
+                </a>
+            )}
         </div>
     );
 };

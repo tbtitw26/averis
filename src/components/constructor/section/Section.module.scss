@@ -7,9 +7,9 @@
   transform: translateY(40px);
   transition: all 0.4s ease;
   justify-content: center;
-  align-items: center;
   gap: 3rem;
   padding: var(--main-padding);
+  align-items: stretch; // 🟢 ключове
 
   @media (max-width: 768px) {
     flex-direction: column !important;
@@ -50,10 +50,15 @@
   line-height: 1.6;
 }
 
+/* 🟢 Блоки вирівняні по висоті */
 .left,
 .right {
   flex: 1;
   min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  height: auto;
 
   @media screen and (max-width: 768px) {
     width: 100%;
@@ -61,6 +66,16 @@
   }
 }
 
+/* 🟢 Робимо InfoBlock/Card на повну висоту колонки */
+.left > *,
+.right > * {
+  flex-grow: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Центрування для single секцій */
 .single .left,
 .single .right {
   display: flex;
