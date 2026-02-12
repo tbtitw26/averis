@@ -7,7 +7,7 @@ import { headerContent } from "@/resources/content";
 import { drawerConfig } from "@/resources/styles-config";
 import { DrawerMenuProps } from "@/types/drawer-menu";
 import { IoCloseSharp } from "react-icons/io5";
-import {useCurrency} from "@/context/CurrencyContext";
+import { useCurrency } from "@/context/CurrencyContext";
 
 const DrawerMenu: FC<DrawerMenuProps> = ({ open, onClose }) => {
     const cfg = drawerConfig;
@@ -26,24 +26,14 @@ const DrawerMenu: FC<DrawerMenuProps> = ({ open, onClose }) => {
                 },
             }}
         >
-            <IoCloseSharp className={styles.closeIcon} onClick={onClose}/>
-            <div
-                className={styles.content}
-                style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: cfg.contentGap,
-                    justifyContent: cfg.contentAlign,
-                    height: "100%",
-                    alignItems: "start",
-                }}
-            >
+            <IoCloseSharp className={styles.closeIcon} onClick={onClose} />
+
+            <div className={styles.content}>
                 <div className={styles.topRow}>
                     <a
                         href={headerContent.logo.href}
                         className={styles.logo}
                         onClick={onClose}
-                        style={{ display: "inline-flex" }}
                     >
                         <Image
                             width={cfg.logoWidth}
@@ -55,26 +45,44 @@ const DrawerMenu: FC<DrawerMenuProps> = ({ open, onClose }) => {
 
                     <AuthButtons />
 
-                        <div className={styles.currencySwitch}>
-                            <select
-                                value={currency}
-                                onChange={(e) => setCurrency(e.target.value)}
-                                className={styles.currencySelect}
+                    {/* 🔥 Toggle замість select */}
+                    <div className={styles.currencySwitch}>
+                        <div
+                            className={`${styles.toggle} ${styles[currency.toLowerCase()]}`}
+                        >
+              <span
+                  className={`${styles.label} ${
+                      currency === "GBP" ? styles.activeLabel : ""
+                  }`}
+                  onClick={() => setCurrency("GBP")}
+              >
+                GBP
+              </span>
+
+                            <span
+                                className={`${styles.label} ${
+                                    currency === "EUR" ? styles.activeLabel : ""
+                                }`}
+                                onClick={() => setCurrency("EUR")}
                             >
-                                <option value="GBP">£ GBP</option>
-                                <option value="EUR">€ EUR</option>
-                            </select>
+                EUR
+              </span>
+
+                            <span
+                                className={`${styles.label} ${
+                                    currency === "USD" ? styles.activeLabel : ""
+                                }`}
+                                onClick={() => setCurrency("USD")}
+                            >
+                USD
+              </span>
+
+                            <div className={styles.thumb} />
                         </div>
+                    </div>
                 </div>
 
-                <nav
-                    className={styles.nav}
-                    style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: cfg.navGap,
-                    }}
-                >
+                <nav className={styles.nav}>
                     {headerContent.links.map((link) => (
                         <a
                             href={link.href}

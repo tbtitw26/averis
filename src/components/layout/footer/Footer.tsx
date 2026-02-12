@@ -8,8 +8,9 @@ import styles from "./Footer.module.scss";
 import { footerContent } from "@/resources/content";
 import { footerStyles } from "@/resources/styles-config";
 import {SmartLinkProps} from "@/types/smart-link";
-import {media} from "@/resources/media";
 import {FaApplePay, FaCcAmex, FaCcMastercard, FaCcVisa, FaFacebookF, FaGooglePay, FaInstagram, FaLinkedinIn, FaTwitter} from "react-icons/fa";
+import visa from "@/assets/cards/visa.png";
+import mastercard from "@/assets/cards/mastercard.png";
 
 const SmartLink: React.FC<SmartLinkProps> = ({
                                                  href,
@@ -57,8 +58,18 @@ const Footer: React.FC = () => {
     const PaymentMethods = () => (
         <div className={styles["footer__payments"]}>
             <div className={styles.paymentsContent}>
-                <FaCcVisa className={styles.paymentIcon} />
-                <FaCcMastercard className={styles.paymentIcon} />
+                    <Image
+                        src={visa}
+                        alt="Visa"
+                        placeholder="blur"
+                        className={styles.paymentIcon}
+                    />
+                    <Image
+                        src={mastercard}
+                        alt="Mastercard"
+                        placeholder="blur"
+                        className={styles.paymentIcon}
+                    />
             </div>
         </div>
     );

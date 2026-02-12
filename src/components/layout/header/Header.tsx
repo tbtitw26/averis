@@ -82,15 +82,39 @@ const Header: React.FC = () => {
                     <div className={styles.actionsNav}>
                         <AuthButtons/>
                         <div className={styles.currencySwitch}>
-                            <div
-                                className={`${styles.toggle} ${currency === "EUR" ? styles.active : ""}`}
-                                onClick={() => setCurrency(currency === "GBP" ? "EUR" : "GBP")}
-                            >
-                                <span className={styles.labelLeft}>GBP</span>
-                                <span className={styles.labelRight}>EUR</span>
-                                <div className={styles.thumb}/>
+                            <div className={`${styles.toggle} ${styles[currency.toLowerCase()]}`}>
+
+    <span
+        className={`${styles.label} ${
+            currency === "GBP" ? styles.activeLabel : ""
+        }`}
+        onClick={() => setCurrency("GBP")}
+    >
+      GBP
+    </span>
+
+                                <span
+                                    className={`${styles.label} ${
+                                        currency === "EUR" ? styles.activeLabel : ""
+                                    }`}
+                                    onClick={() => setCurrency("EUR")}
+                                >
+      EUR
+    </span>
+
+                                <span
+                                    className={`${styles.label} ${
+                                        currency === "USD" ? styles.activeLabel : ""
+                                    }`}
+                                    onClick={() => setCurrency("USD")}
+                                >
+      USD
+    </span>
+
+                                <div className={styles.thumb} />
                             </div>
                         </div>
+
                     </div>
 
                     {/* Mobile menu */}

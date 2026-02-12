@@ -64,21 +64,67 @@
 }
 
 .currencySwitch {
-    margin-left: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 
-    .currencySelect {
-        background: var(--quaternary-color);
-        border: 1px solid var(--text-inverse);
-        color: var(--primary-color);
-        padding: 6px 12px;
-        border-radius: 6px;
+    .toggle {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 135px;
+        height: 38px;
+        border-radius: 9999px;
+        background: linear-gradient(145deg, #012d29, #04413d);
         cursor: pointer;
-        font-weight: 600;
-        font-size: 0.9rem;
-        transition: all 0.2s ease;
+        padding: 3px;
+        box-shadow:
+                inset 0 0 6px rgba(0, 0, 0, 0.4),
+                0 0 18px rgba(50, 214, 154, 0.25);
+    }
 
-        &:hover {
-            background: rgba(255, 255, 255, 0.1);
+    .label {
+        flex: 1;
+        text-align: center;
+        font-weight: 700;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.4);
+        z-index: 2;
+        user-select: none;
+        transition: color 0.3s ease;
+        cursor: pointer;
+
+        &.activeLabel {
+            color: #ffffff;
         }
     }
+
+    .thumb {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 42px;
+        height: 32px;
+        border-radius: 9999px;
+        background: linear-gradient(145deg, #21e4a0, #2ddbb6);
+        box-shadow: 0 0 15px rgba(50, 214, 154, 0.6);
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1;
+    }
+
+    /* 🔥 Позиції */
+
+    .toggle.gbp .thumb {
+        transform: translateX(0);
+    }
+
+    .toggle.eur .thumb {
+        transform: translateX(43.5px);
+    }
+
+    .toggle.usd .thumb {
+        transform: translateX(87px);
+    }
 }
+
