@@ -92,8 +92,14 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
             const data = JSON.parse(text);
 
-            // ✅ ВАЖЛИВО: редірект на HPP
-            if (!data?.redirectUrl) throw new Error("Missing redirectUrl from server");
+            const purchaseIntent = {
+                tokens: isCustom
+                    ? Math.floor(convertToGBP(customAmount) * TOKENS_PER_GBP)
+                    : tokens,
+                createdAt: Date.now(),
+            };
+
+            localStorage.setItem("pendingPurchase", JSON.stringify(purchaseIntent));
 
             window.location.href = data.redirectUrl;
         } catch (err: any) {
@@ -107,8 +113,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: index * 0.15 }}
-        >
+            transition={{ duration: 0.6, ease: "easeOut", delay: index * 0.15 }}>
             {badgeTop && <span className={styles.badgeTop}>{badgeTop}</span>}
             <h3 className={styles.title}>{title}</h3>
 
