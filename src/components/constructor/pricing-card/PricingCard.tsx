@@ -63,38 +63,39 @@ const PricingCard: React.FC<PricingCardProps> = ({
         }
 
         try {
+            const endpoint = "/api/spoynt/create-invoice";
+
             let body: any;
+
             if (isCustom) {
                 const gbpEquivalent = convertToGBP(customAmount);
                 if (gbpEquivalent < 0.01) {
                     showAlert("Minimum is 0.01", "Enter at least 0.01 GBP equivalent", "warning");
                     return;
                 }
+
                 body = { currency, amount: customAmount };
             } else {
-                body = { amount: tokens };
+                // ✅ FIX: сервер чекає tokens, а не amount
+                body = { tokens };
             }
 
-            const res = await fetch("/api/user/buy-tokens", {
+            const res = await fetch(endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
                 body: JSON.stringify(body),
             });
 
-            if (!res.ok) throw new Error(await res.text());
-            const data = await res.json();
+            const text = await res.text();
+            if (!res.ok) throw new Error(text);
 
-            showAlert(
-                "Success!",
-                isCustom
-                    ? `You paid ${sign}${customAmount.toFixed(2)} ${currency} (≈ ${Math.floor(
-                        convertToGBP(customAmount) * TOKENS_PER_GBP
-                    )} tokens)`
-                    : `You purchased ${tokens} tokens.`,
-                "success"
-            );
-            console.log("Updated user:", data.user);
+            const data = JSON.parse(text);
+
+            // ✅ ВАЖЛИВО: редірект на HPP
+            if (!data?.redirectUrl) throw new Error("Missing redirectUrl from server");
+
+            window.location.href = data.redirectUrl;
         } catch (err: any) {
             showAlert("Error", err.message || "Something went wrong", "error");
         }
