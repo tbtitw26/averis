@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import styles from "./PricingCard.module.scss";
 import ButtonUI from "@/components/ui/button/ButtonUI";
@@ -10,6 +10,7 @@ import Input from "@mui/joy/Input";
 import { useCurrency } from "@/context/CurrencyContext";
 
 const TOKENS_PER_GBP = 100;
+const MIN_GBP = 10;
 
 interface PricingCardProps {
     variant?: "starter" | "pro" | "premium" | "custom";
@@ -42,8 +43,18 @@ const PricingCard: React.FC<PricingCardProps> = ({
     const { currency, sign, convertFromGBP, convertToGBP } = useCurrency();
 
     // 🔹 Початкове значення — 0.01
-    const [customAmount, setCustomAmount] = useState<number>(0.01);
+    const [customAmount, setCustomAmount] = useState<number>(MIN_GBP);
     const isCustom = price === "dynamic";
+
+    const minAmountInCurrency = useMemo(() => convertFromGBP(MIN_GBP), [convertFromGBP]);
+
+    useEffect(() => {
+        if (!isCustom) return;
+        const minValue = Number(minAmountInCurrency.toFixed(2));
+        if (!Number.isFinite(customAmount) || customAmount < minValue) {
+            setCustomAmount(minValue);
+        }
+    }, [isCustom, minAmountInCurrency]);
 
     const basePriceGBP = useMemo(
         () => (isCustom ? 0 : parseFloat(price.replace(/[^0-9.]/g, ""))),
@@ -69,13 +80,21 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
             if (isCustom) {
                 const gbpEquivalent = convertToGBP(customAmount);
-                if (gbpEquivalent < 0.01) {
-                    showAlert("Minimum is 0.01", "Enter at least 0.01 GBP equivalent", "warning");
+                if (gbpEquivalent < MIN_GBP) {
+                    showAlert(
+                        "Minimum is 10.00 GBP",
+                        `Enter at least ${minAmountInCurrency.toFixed(2)} ${currency}`,
+                        "warning"
+                    );
                     return;
                 }
 
                 body = { currency, amount: customAmount };
             } else {
+                if (tokens < MIN_GBP * TOKENS_PER_GBP) {
+                    showAlert("Minimum is 10.00 GBP", "Select a plan with at least 1000 tokens", "warning");
+                    return;
+                }
                 // ✅ FIX: сервер чекає tokens, а не amount
                 body = { tokens };
             }
@@ -123,11 +142,13 @@ const PricingCard: React.FC<PricingCardProps> = ({
                         <Input
                             type="number"
                             value={customAmount}
-                            min={0.01}
+                            min={Number(minAmountInCurrency.toFixed(2))}
                             step={0.01}
                             onChange={(e) =>
                                 setCustomAmount(
-                                    e.target.value === "" ? 0.01 : Math.max(0.01, Number(e.target.value))
+                                    e.target.value === ""
+                                        ? Number(minAmountInCurrency.toFixed(2))
+                                        : Math.max(Number(minAmountInCurrency.toFixed(2)), Number(e.target.value))
                                 )
                             }
                             placeholder="Enter amount"
