@@ -1,17 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="AgentMigrationStateService">
+    <option name="migrationStatus" value="IN_PROGRESS" />
     <option name="pendingSessionIds">
       <option value="524c5e7f-c710-4525-9ad2-516a7073a6dc" />
     </option>
     <pendingWorkingSetItems>
-      <entry key="2f321571-bbe2-4222-8d51-26efd9fc6d7d">
-        <set>
-          <option value="file://$PROJECT_DIR$/src/app/api/spoynt/token-invoice/route.ts" />
-          <option value="file://$PROJECT_DIR$/src/app/api/spoynt/payment-status/route.ts" />
-          <option value="file://$PROJECT_DIR$/src/lib/spoynt/spoyntClient.ts" />
-        </set>
-      </entry>
+      <entry key="2f321571-bbe2-4222-8d51-26efd9fc6d7d" />
     </pendingWorkingSetItems>
   </component>
 </project>
