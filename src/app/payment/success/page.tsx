@@ -1,51 +1,129 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import styles from "./PaymentSuccess.module.scss";
 
 export default function PaymentSuccessPage() {
     const sp = useSearchParams();
     const router = useRouter();
 
-    const cpi = sp.get("cpi") || sp.get("invoice") || "";
+    const [cpiValue, setCpiValue] = useState<string>("");
     const [state, setState] = useState<"loading" | "ok" | "pending" | "error">("loading");
     const [msg, setMsg] = useState<string>("");
+    const [creditedTokens, setCreditedTokens] = useState<number | null>(null);
+    const [balanceAfter, setBalanceAfter] = useState<number | null>(null);
+    const [latestTransaction, setLatestTransaction] = useState<{
+        _id: string;
+        amount: number;
+        type: "add" | "spend";
+        balanceAfter: number;
+        createdAt: string;
+    } | null>(null);
+    const [pendingPurchase, setPendingPurchase] = useState<{
+        tokens: number;
+        createdAt: number;
+    } | null>(null);
+    const [isMounted, setIsMounted] = useState(false);
+    const hasAppliedRef = useRef(false);
+
+    const badgeClass =
+        state === "ok"
+            ? styles.badgeOk
+            : state === "pending"
+                ? styles.badgePending
+                : state === "error"
+                    ? styles.badgeError
+                    : styles.badgeLoading;
 
     useEffect(() => {
-        if (!cpi) {
+        setIsMounted(true);
+        setCpiValue(sp.get("cpi") || sp.get("invoice") || "");
+        try {
+            const raw = localStorage.getItem("pendingPurchase");
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (!parsed || !Number.isFinite(parsed.tokens)) return;
+            setPendingPurchase({
+                tokens: Number(parsed.tokens),
+                createdAt: Number(parsed.createdAt) || Date.now(),
+            });
+        } catch {
+            setPendingPurchase(null);
+        }
+    }, [sp]);
+
+    useEffect(() => {
+        if (!isMounted) return;
+
+        if (!pendingPurchase || !Number.isFinite(pendingPurchase.tokens) || pendingPurchase.tokens <= 0) {
             setState("error");
-            setMsg("Missing payment reference (cpi).");
+            setMsg("Missing selected package.");
             return;
         }
 
+        if (hasAppliedRef.current) return;
+        hasAppliedRef.current = true;
+
         let cancelled = false;
 
-        const run = async () => {
+        const loadLatestTransaction = async () => {
             try {
-                const res = await fetch(`/api/spoynt/confirm?cpi=${encodeURIComponent(cpi)}`, {
-                    method: "GET",
-                    credentials: "include",
-                });
+                const res = await fetch("/api/transactions/get-all", { credentials: "include" });
+                if (!res.ok) return;
+                const data = await res.json();
+                const tx = Array.isArray(data.transactions)
+                    ? data.transactions.find((t: any) => t?.type === "add")
+                    : null;
+                if (!cancelled) setLatestTransaction(tx || null);
+            } catch {
+                if (!cancelled) setLatestTransaction(null);
+            }
+        };
 
-                const text = await res.text();
-                if (!res.ok) throw new Error(text);
+        const applyTokens = async () => {
+            try {
+                setState("loading");
+                setMsg("Crediting your tokens...");
 
-                const data = JSON.parse(text);
+                const runBuyTokens = async () =>
+                    fetch("/api/user/buy-tokens", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ amount: pendingPurchase.tokens }),
+                    });
+
+                let res = await runBuyTokens();
+                let data = await res.json().catch(() => ({}));
+
+                if (!res.ok) {
+                    const isAuthError =
+                        res.status === 401 ||
+                        /Missing auth|Invalid or expired token/i.test(String(data?.message || ""));
+
+                    if (isAuthError) {
+                        const refreshRes = await fetch("/api/auth/refresh", {
+                            method: "POST",
+                            credentials: "include",
+                        });
+                        if (refreshRes.ok) {
+                            res = await runBuyTokens();
+                            data = await res.json().catch(() => ({}));
+                        }
+                    }
+                }
+
+                if (!res.ok) throw new Error(data?.message || "Failed to credit tokens");
 
                 if (cancelled) return;
-
-                if (data.status === "credited") {
-                    setState("ok");
-                    setMsg(`Tokens credited: ${data.tokens}. New balance: ${data.user?.tokens ?? "—"}`);
-                } else if (data.status === "pending") {
-                    setState("pending");
-                    setMsg("Payment is still processing. We’ll refresh automatically.");
-                    // авто-рефреш через 2с
-                    setTimeout(() => router.refresh(), 2000);
-                } else {
-                    setState("error");
-                    setMsg(data.message || "Payment not confirmed.");
-                }
+                setState("ok");
+                setCreditedTokens(pendingPurchase.tokens);
+                setBalanceAfter(data?.user?.tokens ?? null);
+                setMsg(`Tokens credited: ${pendingPurchase.tokens}. New balance: ${data?.user?.tokens ?? "—"}`);
+                localStorage.removeItem("pendingPurchase");
+                await loadLatestTransaction();
+                setTimeout(() => router.push("/dashboard"), 800);
             } catch (e: any) {
                 if (cancelled) return;
                 setState("error");
@@ -53,84 +131,109 @@ export default function PaymentSuccessPage() {
             }
         };
 
-        run();
+        applyTokens();
 
         return () => {
             cancelled = true;
         };
-    }, [cpi, router]);
+    }, [isMounted, pendingPurchase, router]);
 
-    useEffect(() => {
-        let cancelled = false;
-
-        const run = async () => {
-            try {
-                if (!cpi) {
-                    // fallback якщо немає cpi
-                    const raw = localStorage.getItem("pendingPurchase");
-                    if (raw) {
-                        const parsed = JSON.parse(raw);
-                        setState("pending");
-                        setMsg("Waiting for payment confirmation...");
-                    }
-                    return;
-                }
-
-                const res = await fetch(`/api/spoynt/confirm?cpi=${encodeURIComponent(cpi)}`, {
-                    method: "GET",
-                    credentials: "include",
-                });
-
-                const text = await res.text();
-                const data = JSON.parse(text);
-
-                if (cancelled) return;
-
-                if (data.status === "credited") {
-                    setState("ok");
-                    setMsg(`Tokens credited: ${data.tokens}. New balance: ${data.user?.tokens ?? "—"}`);
-                    localStorage.removeItem("pendingPurchase");
-                } else if (data.status === "pending") {
-                    setState("pending");
-                    setMsg("Payment is still processing...");
-                    setTimeout(run, 2000);
-                } else {
-                    setState("error");
-                    setMsg("Payment not confirmed.");
-                }
-            } catch {
-                setState("error");
-                setMsg("Something went wrong.");
-            }
-        };
-
-        run();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [cpi]);
+    const formattedPendingDate = pendingPurchase
+        ? new Date(pendingPurchase.createdAt).toLocaleString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+        })
+        : "—";
 
     return (
-        <main style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
-            <h1>Payment success</h1>
+        <main className={styles.page}>
+            <section className={styles.card}>
+                <div className={styles.header}>
+                    <div>
+                        <h1 className={styles.title}>Payment success</h1>
+                        <p className={styles.subtitle}>We are syncing your tokens and order.</p>
+                    </div>
+                    <span className={`${styles.badge} ${badgeClass}`}>
+                        {state === "ok"
+                            ? "Confirmed"
+                            : state === "pending"
+                                ? "Pending"
+                                : state === "error"
+                                    ? "Error"
+                                    : "Loading"}
+                    </span>
+                </div>
 
-            {state === "loading" && <p>Confirming payment…</p>}
-            {state === "pending" && <p>{msg}</p>}
-            {state === "ok" && (
-                <>
-                    <p>{msg}</p>
-                    <a href="/dashboard">Go to dashboard</a>
-                </>
-            )}
-            {state === "error" && (
-                <>
-                    <p style={{ color: "crimson" }}>{msg}</p>
-                    <a href="/pricing">Back to pricing</a>
-                </>
-            )}
+                <p className={styles.message}>{msg || "Confirming payment..."}</p>
 
-            <p style={{ opacity: 0.6, marginTop: 16 }}>Reference: {cpi || "—"}</p>
+                <div className={styles.detailsGrid}>
+                    <div className={styles.detailItem}>
+                        <span>Selected package</span>
+                        <span className={styles.detailValue}>
+                            {isMounted && pendingPurchase ? `${pendingPurchase.tokens} tokens` : "—"}
+                        </span>
+                    </div>
+                    <div className={styles.detailItem}>
+                        <span>Reference</span>
+                        <span className={styles.detailValue}>{isMounted ? cpiValue || "—" : "—"}</span>
+                    </div>
+                    <div className={styles.detailItem}>
+                        <span>Credited tokens</span>
+                        <span className={styles.detailValue}>
+                            {creditedTokens !== null ? `${creditedTokens} tokens` : "—"}
+                        </span>
+                    </div>
+                    <div className={styles.detailItem}>
+                        <span>Balance after</span>
+                        <span className={styles.detailValue}>
+                            {balanceAfter !== null ? `${balanceAfter} tokens` : "—"}
+                        </span>
+                    </div>
+                    <div className={styles.detailItem}>
+                        <span>Order created</span>
+                        <span className={styles.detailValue}>
+                            {latestTransaction ? "Yes" : state === "ok" ? "Pending sync" : "—"}
+                        </span>
+                    </div>
+                    <div className={styles.detailItem}>
+                        <span>Selected at</span>
+                        <span className={styles.detailValue}>{isMounted ? formattedPendingDate : "—"}</span>
+                    </div>
+                </div>
+
+                <div className={styles.actions}>
+                    {state === "ok" && (
+                        <>
+                            <a className={styles.primaryBtn} href="/dashboard">
+                                Go to dashboard
+                            </a>
+                            <a className={styles.secondaryBtn} href="/pricing">
+                                Buy more tokens
+                            </a>
+                        </>
+                    )}
+                    {state === "error" && (
+                        <>
+                            <a className={styles.primaryBtn} href="/pricing">
+                                Back to pricing
+                            </a>
+                            <a className={styles.secondaryBtn} href="/contact-us">
+                                Contact support
+                            </a>
+                        </>
+                    )}
+                    {state === "pending" && (
+                        <a className={styles.secondaryBtn} href="/dashboard">
+                            Go to dashboard
+                        </a>
+                    )}
+                </div>
+
+                <p className={styles.meta}>Reference: {isMounted ? cpiValue || "—" : "—"}</p>
+            </section>
         </main>
     );
 }
