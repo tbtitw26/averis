@@ -10,7 +10,7 @@ import Input from "@mui/joy/Input";
 import { useCurrency } from "@/context/CurrencyContext";
 
 const TOKENS_PER_GBP = 100;
-const MIN_GBP = 10;
+const MIN_AMOUNT = 10;
 
 interface PricingCardProps {
     variant?: "starter" | "pro" | "premium" | "custom";
@@ -43,10 +43,10 @@ const PricingCard: React.FC<PricingCardProps> = ({
     const { currency, sign, convertFromGBP, convertToGBP } = useCurrency();
 
     // 🔹 Початкове значення — 0.01
-    const [customAmount, setCustomAmount] = useState<number>(MIN_GBP);
+    const [customAmount, setCustomAmount] = useState<number>(MIN_AMOUNT);
     const isCustom = price === "dynamic";
 
-    const minAmountInCurrency = useMemo(() => convertFromGBP(MIN_GBP), [convertFromGBP]);
+    const minAmountInCurrency = useMemo(() => MIN_AMOUNT, []);
 
     useEffect(() => {
         if (!isCustom) return;
@@ -79,11 +79,10 @@ const PricingCard: React.FC<PricingCardProps> = ({
             let body: any;
 
             if (isCustom) {
-                const gbpEquivalent = convertToGBP(customAmount);
-                if (gbpEquivalent < MIN_GBP) {
+                if (customAmount < MIN_AMOUNT) {
                     showAlert(
-                        "Minimum is 10.00 GBP",
-                        `Enter at least ${minAmountInCurrency.toFixed(2)} ${currency}`,
+                        "Minimum is 10",
+                        `Enter at least ${MIN_AMOUNT.toFixed(2)} ${currency}`,
                         "warning"
                     );
                     return;
@@ -91,8 +90,8 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
                 body = { currency, amount: customAmount };
             } else {
-                if (tokens < MIN_GBP * TOKENS_PER_GBP) {
-                    showAlert("Minimum is 10.00 GBP", "Select a plan with at least 1000 tokens", "warning");
+                if (convertedPrice < MIN_AMOUNT) {
+                    showAlert("Minimum is 10", `Select a plan with at least ${MIN_AMOUNT} ${currency}`, "warning");
                     return;
                 }
                 // ✅ FIX: сервер чекає tokens, а не amount
@@ -142,13 +141,13 @@ const PricingCard: React.FC<PricingCardProps> = ({
                         <Input
                             type="number"
                             value={customAmount}
-                            min={Number(minAmountInCurrency.toFixed(2))}
+                            min={MIN_AMOUNT}
                             step={0.01}
                             onChange={(e) =>
                                 setCustomAmount(
                                     e.target.value === ""
-                                        ? Number(minAmountInCurrency.toFixed(2))
-                                        : Math.max(Number(minAmountInCurrency.toFixed(2)), Number(e.target.value))
+                                        ? MIN_AMOUNT
+                                        : Math.max(MIN_AMOUNT, Number(e.target.value))
                                 )
                             }
                             placeholder="Enter amount"
