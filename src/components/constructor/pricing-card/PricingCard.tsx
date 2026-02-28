@@ -44,6 +44,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
     // 🔹 Початкове значення — 0.01
     const [customAmount, setCustomAmount] = useState<number>(MIN_AMOUNT);
+    const [customAmountRaw, setCustomAmountRaw] = useState<string>(MIN_AMOUNT.toFixed(2));
     const isCustom = price === "dynamic";
 
     const minAmountInCurrency = useMemo(() => MIN_AMOUNT, []);
@@ -53,6 +54,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
         const minValue = Number(minAmountInCurrency.toFixed(2));
         if (!Number.isFinite(customAmount) || customAmount < minValue) {
             setCustomAmount(minValue);
+            setCustomAmountRaw(minValue.toFixed(2));
         }
     }, [isCustom, minAmountInCurrency]);
 
@@ -79,7 +81,8 @@ const PricingCard: React.FC<PricingCardProps> = ({
             let body: any;
 
             if (isCustom) {
-                if (customAmount < MIN_AMOUNT) {
+                const amountValue = Number(customAmountRaw);
+                if (!Number.isFinite(amountValue) || amountValue < MIN_AMOUNT) {
                     showAlert(
                         "Minimum is 10",
                         `Enter at least ${MIN_AMOUNT.toFixed(2)} ${currency}`,
@@ -88,7 +91,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
                     return;
                 }
 
-                body = { currency, amount: customAmount };
+                body = { currency, amount: amountValue };
             } else {
                 if (convertedPrice < MIN_AMOUNT) {
                     showAlert("Minimum is 10", `Select a plan with at least ${MIN_AMOUNT} ${currency}`, "warning");
@@ -112,7 +115,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
             const purchaseIntent = {
                 tokens: isCustom
-                    ? Math.floor(convertToGBP(customAmount) * TOKENS_PER_GBP)
+                    ? Math.floor(convertToGBP(Number(customAmountRaw)) * TOKENS_PER_GBP)
                     : tokens,
                 createdAt: Date.now(),
             };
@@ -140,16 +143,20 @@ const PricingCard: React.FC<PricingCardProps> = ({
                     <div className={styles.inputWrapper}>
                         <Input
                             type="number"
-                            value={customAmount}
+                            value={customAmountRaw}
                             min={MIN_AMOUNT}
                             step={0.01}
-                            onChange={(e) =>
-                                setCustomAmount(
-                                    e.target.value === ""
-                                        ? MIN_AMOUNT
-                                        : Math.max(MIN_AMOUNT, Number(e.target.value))
-                                )
-                            }
+                            onChange={(e) => {
+                                setCustomAmountRaw(e.target.value);
+                            }}
+                            onBlur={() => {
+                                const parsed = Number(customAmountRaw);
+                                const nextValue = Number.isFinite(parsed)
+                                    ? Math.max(MIN_AMOUNT, parsed)
+                                    : MIN_AMOUNT;
+                                setCustomAmount(nextValue);
+                                setCustomAmountRaw(nextValue.toFixed(2));
+                            }}
                             placeholder="Enter amount"
                             size="md"
                             startDecorator={sign}
@@ -157,8 +164,8 @@ const PricingCard: React.FC<PricingCardProps> = ({
                     </div>
                     <p className={styles.dynamicPrice}>
                         {sign}
-                        {customAmount.toFixed(2)} ≈{" "}
-                        {Math.floor(convertToGBP(customAmount) * TOKENS_PER_GBP)} tokens
+                        {(Number(customAmountRaw) || MIN_AMOUNT).toFixed(2)} ≈{" "}
+                        {Math.floor(convertToGBP(Number(customAmountRaw) || MIN_AMOUNT) * TOKENS_PER_GBP)} tokens
                     </p>
                 </>
             ) : (
