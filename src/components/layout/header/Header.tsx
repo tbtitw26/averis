@@ -1,29 +1,62 @@
 "use client";
 
-import React, {useEffect, useState} from "react";
-import {headerContent} from "@/resources/content";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { headerContent } from "@/resources/content";
 import styles from "./Header.module.scss";
-import {IconButton} from "@mui/material";
-import {FaBars} from "react-icons/fa";
-import {useUser} from "@/context/UserContext";
+import { IconButton } from "@mui/material";
+import { FaBars } from "react-icons/fa";
+import { useUser } from "@/context/UserContext";
 import Image from "next/image";
 import AuthButtons from "@/components/widgets/auth-buttons/AuthButtons";
-import {headerStyles} from "@/resources/styles-config";
+import { headerStyles } from "@/resources/styles-config";
 import DrawerMenu from "@/components/ui/drawer/Drawer";
-import {useCurrency} from "@/context/CurrencyContext";
-import {motion} from "framer-motion";
+import { useCurrency } from "@/context/CurrencyContext";
+import { motion } from "framer-motion";
 
 const Header: React.FC = () => {
+    const currencies = useMemo(
+        () => ["GBP", "EUR", "USD", "AUD", "CAD", "NZD", "NOK"] as const,
+        []
+    );
+
+    const [open, setOpen] = useState(false);
+    const currencyRef = useRef<HTMLDivElement | null>(null);
+
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+
     const user = useUser();
-    const {currency, setCurrency} = useCurrency();
+    const { currency, setCurrency } = useCurrency();
 
     useEffect(() => {
         const handleScroll = () => setIsScrolled(window.scrollY > 10);
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
+
+    // Закрити dropdown при кліку поза ним
+    useEffect(() => {
+        if (!open) return;
+
+        const onDocClick = (e: MouseEvent) => {
+            const target = e.target as Node;
+            if (currencyRef.current && !currencyRef.current.contains(target)) {
+                setOpen(false);
+            }
+        };
+
+        const onEsc = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setOpen(false);
+        };
+
+        document.addEventListener("mousedown", onDocClick);
+        document.addEventListener("keydown", onEsc);
+
+        return () => {
+            document.removeEventListener("mousedown", onDocClick);
+            document.removeEventListener("keydown", onEsc);
+        };
+    }, [open]);
 
     // динамічні стилі при скролі
     const scrolledStyle: React.CSSProperties = {};
@@ -49,9 +82,9 @@ const Header: React.FC = () => {
                     .filter(Boolean)
                     .join(" ")}
                 style={scrolledStyle}
-                initial={{opacity: 0, y: -40}}
-                animate={{opacity: 1, y: 0}}
-                transition={{duration: 0.6, ease: "easeOut"}}
+                initial={{ opacity: 0, y: -40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
             >
                 <div className={styles.headerInner}>
                     {/* Ліва частина — логотип */}
@@ -80,41 +113,41 @@ const Header: React.FC = () => {
 
                     {/* Права частина — кнопки */}
                     <div className={styles.actionsNav}>
-                        <AuthButtons/>
-                        <div className={styles.currencySwitch}>
-                            <div className={`${styles.toggle} ${styles[currency.toLowerCase()]}`}>
+                        <AuthButtons />
 
-    <span
-        className={`${styles.label} ${
-            currency === "GBP" ? styles.activeLabel : ""
-        }`}
-        onClick={() => setCurrency("GBP")}
-    >
-      GBP
-    </span>
+                        <div className={styles.currencySwitch} ref={currencyRef}>
+                            <div className={styles.toggle} onClick={() => setOpen((v) => !v)}>
+                                <span className={styles.selected}>{currency}</span>
 
-                                <span
-                                    className={`${styles.label} ${
-                                        currency === "EUR" ? styles.activeLabel : ""
-                                    }`}
-                                    onClick={() => setCurrency("EUR")}
+                                <svg
+                                    className={`${styles.arrow} ${open ? styles.open : ""}`}
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
                                 >
-      EUR
-    </span>
-
-                                <span
-                                    className={`${styles.label} ${
-                                        currency === "USD" ? styles.activeLabel : ""
-                                    }`}
-                                    onClick={() => setCurrency("USD")}
-                                >
-      USD
-    </span>
-
-                                <div className={styles.thumb} />
+                                    <path fill="currentColor" d="M7 10l5 5 5-5z" />
+                                </svg>
                             </div>
-                        </div>
 
+                            {open && (
+                                <div className={styles.dropdown}>
+                                    {currencies.map((c) => (
+                                        <span
+                                            key={c}
+                                            className={`${styles.label} ${
+                                                currency === c ? styles.activeLabel : ""
+                                            }`}
+                                            onClick={() => {
+                                                setCurrency(c);
+                                                setOpen(false);
+                                            }}
+                                        >
+                      {c}
+                    </span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Mobile menu */}
@@ -124,13 +157,13 @@ const Header: React.FC = () => {
                             aria-label="Open navigation"
                             className={styles.button}
                         >
-                            <FaBars className={styles.button}/>
+                            <FaBars className={styles.button} />
                         </IconButton>
                     </div>
                 </div>
             </motion.header>
 
-            <DrawerMenu open={drawerOpen} onClose={() => setDrawerOpen(false)}/>
+            <DrawerMenu open={drawerOpen} onClose={() => setDrawerOpen(false)} />
         </>
     );
 };

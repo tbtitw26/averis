@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { FC, useEffect, useMemo, useRef, useState } from "react";
 import { Drawer } from "@mui/material";
 import styles from "./Drawer.module.scss";
 import Image from "next/image";
@@ -12,6 +12,43 @@ import { useCurrency } from "@/context/CurrencyContext";
 const DrawerMenu: FC<DrawerMenuProps> = ({ open, onClose }) => {
     const cfg = drawerConfig;
     const { currency, setCurrency } = useCurrency();
+
+    const currencies = useMemo(
+        () => ["GBP", "EUR", "USD", "AUD", "CAD", "NZD", "NOK"] as const,
+        []
+    );
+
+    const [curOpen, setCurOpen] = useState(false);
+    const currencyRef = useRef<HTMLDivElement | null>(null);
+
+    // Закривати dropdown коли Drawer закрили
+    useEffect(() => {
+        if (!open) setCurOpen(false);
+    }, [open]);
+
+    // Закрити dropdown при кліку поза ним + ESC
+    useEffect(() => {
+        if (!curOpen) return;
+
+        const onDocClick = (e: MouseEvent) => {
+            const target = e.target as Node;
+            if (currencyRef.current && !currencyRef.current.contains(target)) {
+                setCurOpen(false);
+            }
+        };
+
+        const onEsc = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setCurOpen(false);
+        };
+
+        document.addEventListener("mousedown", onDocClick);
+        document.addEventListener("keydown", onEsc);
+
+        return () => {
+            document.removeEventListener("mousedown", onDocClick);
+            document.removeEventListener("keydown", onEsc);
+        };
+    }, [curOpen]);
 
     return (
         <Drawer
@@ -45,40 +82,45 @@ const DrawerMenu: FC<DrawerMenuProps> = ({ open, onClose }) => {
 
                     <AuthButtons />
 
-                    {/* 🔥 Toggle замість select */}
-                    <div className={styles.currencySwitch}>
+                    {/* ✅ Dropdown currency */}
+                    <div className={styles.currencySwitch} ref={currencyRef}>
                         <div
-                            className={`${styles.toggle} ${styles[currency.toLowerCase()]}`}
+                            className={styles.toggle}
+                            onClick={() => setCurOpen((v) => !v)}
+                            role="button"
+                            aria-expanded={curOpen}
+                            aria-label="Change currency"
                         >
-              <span
-                  className={`${styles.label} ${
-                      currency === "GBP" ? styles.activeLabel : ""
-                  }`}
-                  onClick={() => setCurrency("GBP")}
-              >
-                GBP
-              </span>
+                            <span className={styles.selected}>{currency}</span>
 
-                            <span
-                                className={`${styles.label} ${
-                                    currency === "EUR" ? styles.activeLabel : ""
-                                }`}
-                                onClick={() => setCurrency("EUR")}
+                            <svg
+                                className={`${styles.arrow} ${curOpen ? styles.open : ""}`}
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
                             >
-                EUR
-              </span>
-
-                            <span
-                                className={`${styles.label} ${
-                                    currency === "USD" ? styles.activeLabel : ""
-                                }`}
-                                onClick={() => setCurrency("USD")}
-                            >
-                USD
-              </span>
-
-                            <div className={styles.thumb} />
+                                <path fill="currentColor" d="M7 10l5 5 5-5z" />
+                            </svg>
                         </div>
+
+                        {curOpen && (
+                            <div className={styles.dropdown}>
+                                {currencies.map((c) => (
+                                    <span
+                                        key={c}
+                                        className={`${styles.label} ${
+                                            currency === c ? styles.activeLabel : ""
+                                        }`}
+                                        onClick={() => {
+                                            setCurrency(c);
+                                            setCurOpen(false);
+                                        }}
+                                    >
+                    {c}
+                  </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 
