@@ -42,7 +42,7 @@ const refundPolicySchema: PageSchema = {
                 "Submit requests to info@averis.co.uk with your order reference and details.",
                 "This Policy may be updated; material changes will be notified as described in §8.",
                 "If you consented to immediate supply and opened/downloaded the digital content, your statutory right to cancel may be lost (see §4.7).",
-                "Accepted currencies: GBP (£), EUR (€). Payment methods: Visa, Mastercard.",
+                "Accepted currencies: GBP (£), EUR (€), USD ($), AUD ($), CAD ($), NZD ($) and NOK (kr.). Payment methods: Visa, Mastercard.",
             ],
         },
         {
@@ -123,8 +123,7 @@ const refundPolicySchema: PageSchema = {
             type: "text",
             title: "11. Examples (Practical, Illustrative)",
             bullets: [
-                "Unused Tokens (GBP): Purchase 2,000 Tokens; spend 300; unused 1,700 → refund equals the pro-rata amount based on the original GBP purchase price (minus fees).",
-                "Unused Tokens (EUR): Same as above, but refund is in EUR at the original amount paid.",
+                "Unused Tokens GBP (£), EUR (€), USD ($), AUD ($), CAD ($), NZD ($) and NOK (kr.): Purchase 2,000 Tokens; spend 300; unused 1,700 → refund equals the pro-rata amount based on the original GBP purchase price (minus fees).",
                 "Opened Workout Plan: If you consented to immediate supply and downloaded the PDF, refunds apply only if defective or not as described (§4.2).",
                 "Promotional Tokens: 100 bonus Tokens awarded in a promotion → non-refundable.",
                 "Add-ons: Base 60 Tokens + add-on Token prices displayed before confirmation; once redeemed, non-refundable except under §4.2.",
@@ -138,7 +137,7 @@ const refundPolicySchema: PageSchema = {
                 "Registered office: Academy House, 11 Dunraven Place, Bridgend, Mid Glamorgan, United Kingdom, CF31 1JF",
                 "Email: info@averis.co.uk",
                 "Tel: +44 7441 393249",
-                "Accepted currencies: GBP (£), EUR (€)",
+                "Accepted currencies: GBP (£), EUR (€), USD ($), AUD ($), CAD ($), NZD ($) and NOK (kr.)",
                 "Payment methods: Visa, Mastercard",
             ],
         },
