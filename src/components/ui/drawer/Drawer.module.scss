@@ -73,7 +73,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        width: 135px;
+        width: 92px;
         height: 38px;
         border-radius: 9999px;
         background: linear-gradient(145deg, #012d29, #04413d);
@@ -120,11 +120,10 @@
     }
 
     .toggle.eur .thumb {
-        transform: translateX(43.5px);
+        transform: translateX(44px);
     }
 
-    .toggle.usd .thumb {
-        transform: translateX(87px);
-    }
+    // .toggle.usd .thumb {
+    //     transform: translateX(87px);
+    // }
 }
-

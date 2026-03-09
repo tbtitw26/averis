@@ -3,8 +3,14 @@ import { requireAuth } from "@/backend/middlewares/auth.middleware";
 import { userController } from "@/backend/controllers/user.controller";
 
 const TOKENS_PER_GBP = 100;
-const RATES_TO_GBP = { GBP: 1, EUR: 1.17, USD: 1.27 };
+const RATES_TO_GBP = {
+    GBP: 1,
+    EUR: 1.17,
+    // USD: 1.27,
+} as const;
 const MIN_AMOUNT = 10;
+
+type SupportedCurrency = keyof typeof RATES_TO_GBP;
 
 export async function POST(req: NextRequest) {
     try {
@@ -25,7 +31,7 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({ message: "Minimum is 10" }, { status: 400 });
             }
 
-            const gbpEquivalent = amountNum / RATES_TO_GBP[currency as "GBP" | "EUR" | "USD"];
+            const gbpEquivalent = amountNum / RATES_TO_GBP[currency as SupportedCurrency];
             const tokens = Math.floor(gbpEquivalent * TOKENS_PER_GBP);
 
             // 🧾 запис транзакції вже всередині userController.buyTokens()
@@ -45,7 +51,8 @@ export async function POST(req: NextRequest) {
 
         const user = await userController.buyTokens(payload.sub, amount);
         return NextResponse.json({ user });
-    } catch (err: any) {
-        return NextResponse.json({ message: err.message }, { status: 400 });
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        return NextResponse.json({ message }, { status: 400 });
     }
 }

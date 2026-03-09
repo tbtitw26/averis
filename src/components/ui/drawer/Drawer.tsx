@@ -47,35 +47,29 @@ const DrawerMenu: FC<DrawerMenuProps> = ({ open, onClose }) => {
 
                     {/* 🔥 Toggle замість select */}
                     <div className={styles.currencySwitch}>
-                        <div
-                            className={`${styles.toggle} ${styles[currency.toLowerCase()]}`}
-                        >
-              <span
-                  className={`${styles.label} ${
-                      currency === "GBP" ? styles.activeLabel : ""
-                  }`}
-                  onClick={() => setCurrency("GBP")}
-              >
-                GBP
-              </span>
+                        <div className={`${styles.toggle} ${styles[currency.toLowerCase()]}`}>
+                            <span
+                                className={`${styles.label} ${currency === "GBP" ? styles.activeLabel : ""}`}
+                                onClick={() => setCurrency("GBP")}
+                            >
+                                GBP
+                            </span>
 
                             <span
-                                className={`${styles.label} ${
-                                    currency === "EUR" ? styles.activeLabel : ""
-                                }`}
+                                className={`${styles.label} ${currency === "EUR" ? styles.activeLabel : ""}`}
                                 onClick={() => setCurrency("EUR")}
                             >
-                EUR
-              </span>
+                                EUR
+                            </span>
 
+                            {/*
                             <span
-                                className={`${styles.label} ${
-                                    currency === "USD" ? styles.activeLabel : ""
-                                }`}
+                                className={`${styles.label} ${currency === "USD" ? styles.activeLabel : ""}`}
                                 onClick={() => setCurrency("USD")}
                             >
-                USD
-              </span>
+                                USD
+                            </span>
+                            */}
 
                             <div className={styles.thumb} />
                         </div>
