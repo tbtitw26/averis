@@ -177,6 +177,20 @@
       transform: translateY(-2px);
       box-shadow: 0 10px 22px rgba(50, 214, 154, 0.4);
     }
+
+    /* ❗ Коли кнопка неактивна */
+    &:disabled {
+      background: linear-gradient(90deg, #bfc7c5, #9aa3a1);
+      box-shadow: none;
+      cursor: not-allowed;
+      opacity: 0.6;
+      transform: none;
+    }
+
+    &:disabled:hover {
+      transform: none;
+      box-shadow: none;
+    }
   }
 }
 
@@ -198,6 +212,11 @@
 .custom {
   background: linear-gradient(180deg, #f2f7ff 0%, #e7f1ff 100%);
   border-color: rgba(59, 130, 246, 0.35);
+}
+
+.checkboxWrapper {
+  margin: 16px 0;
+  text-align: left;
 }
 
 /* 📱 Адаптив */

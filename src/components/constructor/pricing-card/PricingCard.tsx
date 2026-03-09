@@ -7,6 +7,7 @@ import ButtonUI from "@/components/ui/button/ButtonUI";
 import { useAlert } from "@/context/AlertContext";
 import { useUser } from "@/context/UserContext";
 import Input from "@mui/joy/Input";
+import Checkbox from "@mui/joy/Checkbox";
 import { useCurrency } from "@/context/CurrencyContext";
 
 const TOKENS_PER_GBP = 100;
@@ -42,9 +43,10 @@ const PricingCard: React.FC<PricingCardProps> = ({
     const user = useUser();
     const { currency, sign, convertFromGBP, convertToGBP } = useCurrency();
 
-    // 🔹 Початкове значення — 0.01
     const [customAmount, setCustomAmount] = useState<number>(MIN_AMOUNT);
     const [customAmountRaw, setCustomAmountRaw] = useState<string>(MIN_AMOUNT.toFixed(2));
+    const [isAgreed, setIsAgreed] = useState(false);
+
     const isCustom = price === "dynamic";
 
     const minAmountInCurrency = useMemo(() => MIN_AMOUNT, []);
@@ -56,7 +58,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
             setCustomAmount(minValue);
             setCustomAmountRaw(minValue.toFixed(2));
         }
-    }, [isCustom, minAmountInCurrency]);
+    }, [isCustom, minAmountInCurrency, customAmount]);
 
     const basePriceGBP = useMemo(
         () => (isCustom ? 0 : parseFloat(price.replace(/[^0-9.]/g, ""))),
@@ -69,6 +71,11 @@ const PricingCard: React.FC<PricingCardProps> = ({
     );
 
     const handleBuy = async () => {
+        if (!isAgreed) {
+            showAlert("Agreement required", "Please accept the terms before purchase", "warning");
+            return;
+        }
+
         if (!user) {
             showAlert("Please sign up", "You need to be signed in to purchase", "info");
             setTimeout(() => (window.location.href = "/sign-up"), 1200);
@@ -94,10 +101,14 @@ const PricingCard: React.FC<PricingCardProps> = ({
                 body = { currency, amount: amountValue };
             } else {
                 if (convertedPrice < MIN_AMOUNT) {
-                    showAlert("Minimum is 10", `Select a plan with at least ${MIN_AMOUNT} ${currency}`, "warning");
+                    showAlert(
+                        "Minimum is 10",
+                        `Select a plan with at least ${MIN_AMOUNT} ${currency}`,
+                        "warning"
+                    );
                     return;
                 }
-                // ✅ FIX: сервер чекає tokens, а не amount
+
                 body = { tokens };
             }
 
@@ -134,7 +145,8 @@ const PricingCard: React.FC<PricingCardProps> = ({
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: index * 0.15 }}>
+            transition={{ duration: 0.6, ease: "easeOut", delay: index * 0.15 }}
+        >
             {badgeTop && <span className={styles.badgeTop}>{badgeTop}</span>}
             <h3 className={styles.title}>{title}</h3>
 
@@ -177,15 +189,25 @@ const PricingCard: React.FC<PricingCardProps> = ({
             )}
 
             <p className={styles.description}>{description}</p>
+
             <ul className={styles.features}>
                 {features.map((f, i) => (
                     <li key={i}>{f}</li>
                 ))}
             </ul>
 
-            <ButtonUI fullWidth onClick={handleBuy}>
+            <div className={styles.checkboxWrapper}>
+                <Checkbox
+                    checked={isAgreed}
+                    onChange={(e) => setIsAgreed(e.target.checked)}
+                    label="I have read and agree to the Terms and Conditions"
+                />
+            </div>
+
+            <ButtonUI fullWidth onClick={handleBuy} disabled={!isAgreed}>
                 {user ? buttonText : "Sign Up to Buy"}
             </ButtonUI>
+
             {badgeBottom && <span className={styles.badgeBottom}>{badgeBottom}</span>}
         </motion.div>
     );
