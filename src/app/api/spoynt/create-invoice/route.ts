@@ -353,7 +353,6 @@ export async function POST(req: NextRequest) {
                     address: {
                         ...(user.street ? { street: user.street } : {}),
                         ...(user.city ? { city: user.city } : {}),
-                        ...(user.country ? { country: user.country } : {}),
                         ...(user.postCode ? { post_code: user.postCode } : {}),
                     },
                 }
