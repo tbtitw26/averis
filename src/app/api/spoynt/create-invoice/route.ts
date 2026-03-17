@@ -432,6 +432,14 @@ export async function POST(req: NextRequest) {
         }
 
         if (!invoiceAttempt?.ok) {
+            console.error("[spoynt:create-invoice] provider_error", {
+                status: invoiceAttempt?.status,
+                details: invoiceAttempt?.text,
+                requestedCurrency,
+                requestedAmountInCurrency,
+                invoiceCurrency,
+                invoiceAmount,
+            });
             return NextResponse.json(
                 { message: "Spoynt create invoice failed", details: invoiceAttempt?.text || "Unknown provider error" },
                 { status: 502 }
@@ -463,6 +471,10 @@ export async function POST(req: NextRequest) {
         const redirect = resolveRedirectInstruction(invoiceAttempt.json);
 
         if (!redirect) {
+            console.error("[spoynt:create-invoice] missing_redirect_data", {
+                cpi,
+                raw: invoiceAttempt.json,
+            });
             return NextResponse.json(
                 { message: "Spoynt response missing redirect data", raw: invoiceAttempt.json },
                 { status: 502 }

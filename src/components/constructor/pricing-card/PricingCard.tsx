@@ -131,7 +131,18 @@ const PricingCard: React.FC<PricingCardProps> = ({
             });
 
             const text = await res.text();
-            if (!res.ok) throw new Error(text);
+            if (!res.ok) {
+                let message = text;
+
+                try {
+                    const parsed = JSON.parse(text) as { message?: string; details?: string };
+                    message = parsed.details || parsed.message || text;
+                } catch {
+                    message = text;
+                }
+
+                throw new Error(message || "Failed to create payment invoice");
+            }
 
             const data = JSON.parse(text) as {
                 redirectUrl?: string;
