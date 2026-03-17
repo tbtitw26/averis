@@ -26,14 +26,30 @@ export default function SignInPage() {
         >
             {({ isSubmitting }) => (
                 <FormUI
-                    title="Sign In"
-                    description="Welcome back! Please enter your details."
+                    eyebrow="Member Access"
+                    title="Sign in to your account"
+                    description="Pick up where you left off, manage your profile, and keep your training flow moving."
                     isSubmitting={isSubmitting}
+                    accent="mint"
+                    sideTitle="Everything important, one clean dashboard."
+                    sideDescription="Access your programs, payments, and personal details from a focused workspace designed to stay out of your way."
+                    stats={[
+                        { value: "24/7", label: "Access to your account and training data" },
+                        { value: "1 tap", label: "Fast return to your active plan and profile" },
+                    ]}
+                    highlights={[
+                        "Review your plan, billing, and profile from one place.",
+                        "Return to active coaching flows without extra steps.",
+                        "A calmer interface with stronger hierarchy and readability.",
+                    ]}
                     fields={[
                         { name: "email", type: "email", placeholder: "Email" },
                         { name: "password", type: "password", placeholder: "Password" }
                     ]}
-                    submitLabel="Sign In"
+                    submitLabel="Continue"
+                    footerPrompt="No account yet?"
+                    footerLinkLabel="Create one"
+                    footerLinkHref="/sign-up"
                 />
             )}
         </Formik>

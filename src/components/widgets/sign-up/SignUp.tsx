@@ -31,10 +31,23 @@ export default function SignUpPage() {
         >
             {({ isSubmitting }) => (
                 <FormUI
-                    title="Sign Up"
-                    description="Create your account"
+                    eyebrow="New Account"
+                    title="Create your Averis profile"
+                    description="Set up your details once and keep your training, billing, and personal information in one polished space."
                     layout="wide"
                     isSubmitting={isSubmitting}
+                    accent="emerald"
+                    sideTitle="Start with a profile that feels premium from day one."
+                    sideDescription="Registration is structured for clarity: essential personal details, address information, and secure account setup in one uninterrupted flow."
+                    stats={[
+                        { value: "Secure", label: "Protected login and account management" },
+                        { value: "2 min", label: "Typical setup time for a complete profile" },
+                    ]}
+                    highlights={[
+                        "Clear grouping of personal, contact, and address fields.",
+                        "Responsive layout that stays readable on mobile and desktop.",
+                        "Direct route into your account as soon as registration completes.",
+                    ]}
                     fields={[
                         { name: "firstName", type: "text", label: "First name", placeholder: "Enter your first name" },
                         { name: "lastName", type: "text", label: "Last name", placeholder: "Enter your last name" },
@@ -59,6 +72,9 @@ export default function SignUpPage() {
                     ]}
                     submitLabel="Sign Up"
                     showTerms
+                    footerPrompt="Already registered?"
+                    footerLinkLabel="Sign in"
+                    footerLinkHref="/sign-in"
                 />
             )}
         </Formik>

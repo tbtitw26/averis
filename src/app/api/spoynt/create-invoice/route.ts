@@ -1,6 +1,8 @@
 // app/api/spoynt/create-invoice/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/backend/middlewares/auth.middleware";
+import { connectDB } from "@/backend/config/db";
+import { User } from "@/backend/models/user.model";
 import { spoyntService } from "@/backend/services/spoynt.service";
 import crypto from "crypto";
 
@@ -47,6 +49,19 @@ type CreateInvoiceAttemptArgs = {
     requestedCurrency: SupportedCurrency;
     requestedAmount: number;
     userEmail: string;
+    customer?: {
+        name?: string;
+        first_name?: string;
+        surname?: string;
+        phone?: string;
+        date_of_birth?: string;
+        address?: {
+            street?: string;
+            city?: string;
+            country?: string;
+            post_code?: string;
+        };
+    };
     fallbackFromCurrency?: SupportedCurrency;
 };
 
@@ -58,8 +73,19 @@ type SpoyntInvoiceResponse = {
             resolution?: string | null;
             updated?: number;
             hpp_url?: string;
+            flow_data?: {
+                action?: string;
+                method?: string;
+                params?: Record<string, string> | Array<{ name?: string; value?: string }> | string[];
+            } | [];
         };
     };
+};
+
+type RedirectInstruction = {
+    url: string;
+    method: "GET" | "POST";
+    params: Record<string, string>;
 };
 
 function assertEnv(name: string): string {
@@ -111,6 +137,7 @@ async function createSpoyntInvoice({
     requestedCurrency,
     requestedAmount,
     userEmail,
+    customer,
     fallbackFromCurrency,
 }: CreateInvoiceAttemptArgs) {
     const createUrl = `${baseUrl}/payment-invoices`;
@@ -122,6 +149,7 @@ async function createSpoyntInvoice({
                 amount,
                 currency,
                 service,
+                flow: "charge",
                 reference_id: referenceId,
                 description: `Averis tokens: ${tokens}`,
                 callback_url: callbackUrl,
@@ -129,6 +157,14 @@ async function createSpoyntInvoice({
                 customer: {
                     reference_id: userId,
                     email: userEmail,
+                    ...(customer?.name ? { name: customer.name } : {}),
+                    ...(customer?.first_name ? { first_name: customer.first_name } : {}),
+                    ...(customer?.surname ? { surname: customer.surname } : {}),
+                    ...(customer?.phone ? { phone: customer.phone } : {}),
+                    ...(customer?.date_of_birth ? { date_of_birth: customer.date_of_birth } : {}),
+                    ...(customer?.address && Object.keys(customer.address).length > 0
+                        ? { address: customer.address }
+                        : {}),
                 },
                 metadata: {
                     user_id: userId,
@@ -171,10 +207,66 @@ async function createSpoyntInvoice({
     };
 }
 
+function normalizeRedirectParams(
+    raw: Record<string, string> | Array<{ name?: string; value?: string }> | string[] | undefined
+) {
+    if (!raw) return {};
+
+    if (Array.isArray(raw)) {
+        return raw.reduce<Record<string, string>>((acc, item, index) => {
+            if (typeof item === "string") {
+                acc[String(index)] = item;
+                return acc;
+            }
+
+            if (item?.name) {
+                acc[item.name] = item.value ?? "";
+            }
+
+            return acc;
+        }, {});
+    }
+
+    return Object.entries(raw).reduce<Record<string, string>>((acc, [key, value]) => {
+        acc[key] = String(value ?? "");
+        return acc;
+    }, {});
+}
+
+function resolveRedirectInstruction(
+    invoice: SpoyntInvoiceResponse | null,
+): RedirectInstruction | null {
+    const attrs = invoice?.data?.attributes;
+    const hppUrl = attrs?.hpp_url?.trim();
+
+    if (hppUrl) {
+        return {
+            url: hppUrl,
+            method: "GET",
+            params: {},
+        };
+    }
+
+    const flowData = Array.isArray(attrs?.flow_data) ? null : attrs?.flow_data;
+    const action = flowData?.action?.trim();
+
+    if (action) {
+        return {
+            url: action,
+            method: flowData?.method?.toUpperCase() === "POST" ? "POST" : "GET",
+            params: normalizeRedirectParams(flowData?.params),
+        };
+    }
+    
+    return null;
+}
+
 export async function POST(req: NextRequest) {
     try {
         const payload = await requireAuth(req);
         const body = await req.json().catch(() => ({}));
+        await connectDB();
+        const user = await User.findById(payload.sub).lean();
 
         // Вхідні варіанти:
         // A) preset: { tokens: number }
@@ -248,6 +340,24 @@ export async function POST(req: NextRequest) {
             fail: withReference(SPOYNT_RETURN_FAIL),
             pending: withReference(SPOYNT_RETURN_PENDING),
         };
+        const customer =
+            user
+                ? {
+                    ...(user.name ? { name: user.name } : {}),
+                    ...(user.firstName ? { first_name: user.firstName } : {}),
+                    ...(user.lastName ? { surname: user.lastName } : {}),
+                    ...(user.phoneNumber ? { phone: user.phoneNumber } : {}),
+                    ...(user.dateOfBirth
+                        ? { date_of_birth: new Date(user.dateOfBirth).toISOString().slice(0, 10) }
+                        : {}),
+                    address: {
+                        ...(user.street ? { street: user.street } : {}),
+                        ...(user.city ? { city: user.city } : {}),
+                        ...(user.country ? { country: user.country } : {}),
+                        ...(user.postCode ? { post_code: user.postCode } : {}),
+                    },
+                }
+                : undefined;
         let invoiceCurrency: SupportedCurrency = requestedCurrency;
         let invoiceAmount = requestedAmountInCurrency;
         let fallbackToGBP = false;
@@ -273,6 +383,7 @@ export async function POST(req: NextRequest) {
                     requestedCurrency,
                     requestedAmount: requestedAmountInCurrency,
                     userEmail: payload.email,
+                    customer,
                 });
             }
 
@@ -296,6 +407,7 @@ export async function POST(req: NextRequest) {
                     requestedCurrency,
                     requestedAmount: requestedAmountInCurrency,
                     userEmail: payload.email,
+                    customer,
                     fallbackFromCurrency: "EUR",
                 });
             }
@@ -315,6 +427,7 @@ export async function POST(req: NextRequest) {
                 requestedCurrency,
                 requestedAmount: requestedAmountInCurrency,
                 userEmail: payload.email,
+                customer,
             });
         }
 
@@ -347,9 +460,14 @@ export async function POST(req: NextRequest) {
             providerUpdatedAt: invoiceAttempt.json?.data?.attributes?.updated ?? null,
         });
 
-        const redirectUrl =
-            invoiceAttempt.json?.data?.attributes?.hpp_url ||
-            `${SPOYNT_BASE_URL}/redirect/hpp/?cpi=${encodeURIComponent(cpi)}`;
+        const redirect = resolveRedirectInstruction(invoiceAttempt.json);
+
+        if (!redirect) {
+            return NextResponse.json(
+                { message: "Spoynt response missing redirect data", raw: invoiceAttempt.json },
+                { status: 502 }
+            );
+        }
 
         return NextResponse.json({
             cpi,
@@ -359,7 +477,10 @@ export async function POST(req: NextRequest) {
             currency: invoiceCurrency,
             requestedCurrency,
             fallbackToGBP,
-            redirectUrl,
+            redirectUrl: redirect.url,
+            redirectMethod: redirect.method,
+            redirectParams: redirect.params,
+            redirect,
         });
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Unknown error";

@@ -14,6 +14,16 @@ import { useCurrency } from "@/context/CurrencyContext";
 const TOKENS_PER_GBP = 100;
 const MIN_AMOUNT = 10;
 
+type PurchaseRequestBody =
+    | { currency: string; amount: number }
+    | { tokens: number };
+
+type RedirectInstruction = {
+    url: string;
+    method?: "GET" | "POST";
+    params?: Record<string, string>;
+};
+
 interface PricingCardProps {
     variant?: "starter" | "pro" | "premium" | "custom";
     title: string;
@@ -86,7 +96,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
         try {
             const endpoint = "/api/spoynt/create-invoice";
 
-            let body: any;
+            let body: PurchaseRequestBody;
 
             if (isCustom) {
                 const amountValue = Number(customAmountRaw);
@@ -123,7 +133,12 @@ const PricingCard: React.FC<PricingCardProps> = ({
             const text = await res.text();
             if (!res.ok) throw new Error(text);
 
-            const data = JSON.parse(text);
+            const data = JSON.parse(text) as {
+                redirectUrl?: string;
+                redirectMethod?: "GET" | "POST";
+                redirectParams?: Record<string, string>;
+                redirect?: RedirectInstruction;
+            };
 
             const purchaseIntent = {
                 tokens: isCustom
@@ -134,9 +149,39 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
             localStorage.setItem("pendingPurchase", JSON.stringify(purchaseIntent));
 
-            window.location.href = data.redirectUrl;
-        } catch (err: any) {
-            showAlert("Error", err.message || "Something went wrong", "error");
+            const redirect = data.redirect || {
+                url: data.redirectUrl || "",
+                method: data.redirectMethod || "GET",
+                params: data.redirectParams || {},
+            };
+
+            if (!redirect.url) {
+                throw new Error("Payment provider returned no redirect instruction");
+            }
+
+            if ((redirect.method || "GET") === "POST") {
+                const form = document.createElement("form");
+                form.method = "POST";
+                form.action = redirect.url;
+                form.style.display = "none";
+
+                for (const [key, value] of Object.entries(redirect.params || {})) {
+                    const input = document.createElement("input");
+                    input.type = "hidden";
+                    input.name = key;
+                    input.value = String(value ?? "");
+                    form.appendChild(input);
+                }
+
+                document.body.appendChild(form);
+                form.submit();
+                return;
+            }
+
+            window.location.assign(redirect.url);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Something went wrong";
+            showAlert("Error", message, "error");
         }
     };
 
