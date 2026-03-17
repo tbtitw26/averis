@@ -45,10 +45,6 @@ const nextConfig: NextConfig = {
     typescript: {
         ignoreBuildErrors: true,
     },
-
-    turbo: {
-        enabled: true,
-    },
 };
 
 export default nextConfig;

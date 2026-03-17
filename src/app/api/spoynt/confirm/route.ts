@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/backend/middlewares/auth.middleware";
-import { userController } from "@/backend/controllers/user.controller";
+import { spoyntService } from "@/backend/services/spoynt.service";
 
 function assertEnv(name: string): string {
     const v = process.env[name];
@@ -24,11 +24,6 @@ export async function GET(req: NextRequest) {
         const SPOYNT_ACCOUNT_ID = assertEnv("SPOYNT_ACCOUNT_ID");
         const SPOYNT_API_KEY = assertEnv("SPOYNT_API_KEY");
 
-        // 1) OPTIONAL (але must-have у проді):
-        // перевірити в БД, що цей cpi вже не credited -> тоді просто вернути credited
-        // if (await SpoyntPayment.exists({ cpi, credited: true })) return NextResponse.json({ status:"credited", ... });
-
-        // 2) Fetch invoice status from Spoynt (server-to-server)
         const url = `${SPOYNT_BASE_URL}/payment-invoices/${encodeURIComponent(cpi)}`;
 
         const r = await fetch(url, {
@@ -48,15 +43,24 @@ export async function GET(req: NextRequest) {
         const json = JSON.parse(text);
         const attrs = json?.data?.attributes;
 
-        const status = attrs?.status;         // e.g. processed / pending / failed
-        const resolution = attrs?.resolution; // e.g. ok
-        const metadata = attrs?.metadata || {};
+        const status = String(attrs?.status || "created");
+        const resolution = attrs?.resolution ? String(attrs.resolution) : null;
+        const metadata =
+            attrs?.metadata && typeof attrs.metadata === "object" && !Array.isArray(attrs.metadata)
+                ? attrs.metadata
+                : {};
+        const payment = await spoyntService.getPaymentByCpi(cpi);
 
-        // Захист: токени можна зарахувати тільки власнику платежу
-        const userId = metadata.user_id;
-        const tokens = Number(metadata.tokens);
+        const userId = String(metadata.user_id || payment?.userId || "");
+        const tokens = Number(metadata.tokens ?? payment?.tokens ?? NaN);
+        const chargedCurrency = String(attrs?.currency || payment?.chargedCurrency || "");
+        const chargedAmount = Number(attrs?.amount ?? payment?.chargedAmount ?? NaN);
+        const requestedCurrency = String(metadata.ui_currency || payment?.requestedCurrency || chargedCurrency);
+        const requestedAmount = Number(metadata.ui_amount ?? payment?.requestedAmount ?? chargedAmount);
+        const referenceId = String(attrs?.reference_id || payment?.referenceId || "");
+        const providerUpdatedAt = Number(attrs?.updated ?? payment?.providerUpdatedAt ?? NaN);
 
-        if (!userId || !Number.isFinite(tokens) || tokens <= 0) {
+        if (!userId) {
             return NextResponse.json({ message: "Invoice metadata missing" }, { status: 400 });
         }
 
@@ -64,25 +68,42 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ message: "Not your payment" }, { status: 403 });
         }
 
-        if (status === "processed" && resolution === "ok") {
-            // 3) Ідемпотентність (обов’язково зроби через БД):
-            // - якщо вже credited: true => не начисляти знову
-            // - якщо ні => начислити, помітити credited: true
+        const result = await spoyntService.processInvoice({
+            cpi,
+            referenceId,
+            userId,
+            tokens,
+            requestedCurrency,
+            requestedAmount,
+            chargedCurrency,
+            chargedAmount,
+            status,
+            resolution,
+            providerUpdatedAt: Number.isFinite(providerUpdatedAt) ? providerUpdatedAt : null,
+        });
 
-            const user = await userController.buyTokens(payload.sub, Math.floor(tokens));
-
-            // TODO: записати credited=true для cpi в БД (щоб не було повторів)
-            // await SpoyntPayment.updateOne({ cpi }, { $set: { credited:true, status, resolution } }, { upsert:true });
-
-            return NextResponse.json({ status: "credited", tokens: Math.floor(tokens), user });
+        if (result.state === "invalid") {
+            return NextResponse.json({ message: result.message }, { status: 400 });
         }
 
-        if (status === "pending" || status === "created") {
-            return NextResponse.json({ status: "pending" });
+        if (result.state === "credited") {
+            return NextResponse.json({
+                status: "credited",
+                tokens: result.tokens,
+                balanceAfter: result.balanceAfter,
+                alreadyCredited: result.alreadyCredited,
+            });
         }
 
-        return NextResponse.json({ status: "failed", message: "Payment not confirmed", spoynt: { status, resolution } });
-    } catch (err: any) {
-        return NextResponse.json({ message: err?.message || "Unknown error" }, { status: 400 });
+        return NextResponse.json({
+            status: result.state,
+            message: result.state === "pending" ? "Payment is still pending" : "Payment not confirmed",
+            spoynt: { status: result.status, resolution: result.resolution },
+        });
+    } catch (err: unknown) {
+        return NextResponse.json(
+            { message: err instanceof Error ? err.message : "Unknown error" },
+            { status: 400 }
+        );
     }
 }

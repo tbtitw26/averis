@@ -3,11 +3,18 @@ import { ENV } from "@/backend/config/env";
 
 const resend = new Resend(ENV.RESEND_API);
 
+type EmailAttachment = {
+    filename: string;
+    content: string | Buffer;
+    contentType?: string;
+};
+
 export async function sendEmail(
     to: string,
     subject: string,
     text: string,
-    html?: string
+    html?: string,
+    attachments?: EmailAttachment[]
 ) {
     try {
         const response = await resend.emails.send({
@@ -16,6 +23,7 @@ export async function sendEmail(
             subject,
             text: text || "",
             html: html || defaultTemplate(subject, text),
+            attachments,
         });
 
         console.log("✅ Email sent via Resend:", response);

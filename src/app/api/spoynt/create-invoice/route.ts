@@ -1,6 +1,7 @@
 // app/api/spoynt/create-invoice/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/backend/middlewares/auth.middleware";
+import { spoyntService } from "@/backend/services/spoynt.service";
 import crypto from "crypto";
 
 const TOKENS_PER_GBP = 100;
@@ -45,12 +46,19 @@ type CreateInvoiceAttemptArgs = {
     userId: string;
     requestedCurrency: SupportedCurrency;
     requestedAmount: number;
+    userEmail: string;
     fallbackFromCurrency?: SupportedCurrency;
 };
 
 type SpoyntInvoiceResponse = {
     data?: {
         id?: string;
+        attributes?: {
+            status?: string;
+            resolution?: string | null;
+            updated?: number;
+            hpp_url?: string;
+        };
     };
 };
 
@@ -102,6 +110,7 @@ async function createSpoyntInvoice({
     userId,
     requestedCurrency,
     requestedAmount,
+    userEmail,
     fallbackFromCurrency,
 }: CreateInvoiceAttemptArgs) {
     const createUrl = `${baseUrl}/payment-invoices`;
@@ -117,6 +126,10 @@ async function createSpoyntInvoice({
                 description: `Averis tokens: ${tokens}`,
                 callback_url: callbackUrl,
                 return_urls: returnUrls,
+                customer: {
+                    reference_id: userId,
+                    email: userEmail,
+                },
                 metadata: {
                     user_id: userId,
                     tokens: String(tokens),
@@ -223,13 +236,18 @@ export async function POST(req: NextRequest) {
         const SPOYNT_RETURN_FAIL = assertEnv("SPOYNT_RETURN_FAIL");
         const SPOYNT_RETURN_PENDING = assertEnv("SPOYNT_RETURN_PENDING");
 
-        const returnUrls: ReturnUrls = {
-            success: SPOYNT_RETURN_SUCCESS,
-            fail: SPOYNT_RETURN_FAIL,
-            pending: SPOYNT_RETURN_PENDING,
+        const withReference = (url: string) => {
+            const target = new URL(url);
+            target.searchParams.set("reference", referenceId);
+            return target.toString();
         };
 
         const referenceId = crypto.randomUUID();
+        const returnUrls: ReturnUrls = {
+            success: withReference(SPOYNT_RETURN_SUCCESS),
+            fail: withReference(SPOYNT_RETURN_FAIL),
+            pending: withReference(SPOYNT_RETURN_PENDING),
+        };
         let invoiceCurrency: SupportedCurrency = requestedCurrency;
         let invoiceAmount = requestedAmountInCurrency;
         let fallbackToGBP = false;
@@ -254,6 +272,7 @@ export async function POST(req: NextRequest) {
                     userId: payload.sub,
                     requestedCurrency,
                     requestedAmount: requestedAmountInCurrency,
+                    userEmail: payload.email,
                 });
             }
 
@@ -276,6 +295,7 @@ export async function POST(req: NextRequest) {
                     userId: payload.sub,
                     requestedCurrency,
                     requestedAmount: requestedAmountInCurrency,
+                    userEmail: payload.email,
                     fallbackFromCurrency: "EUR",
                 });
             }
@@ -294,6 +314,7 @@ export async function POST(req: NextRequest) {
                 userId: payload.sub,
                 requestedCurrency,
                 requestedAmount: requestedAmountInCurrency,
+                userEmail: payload.email,
             });
         }
 
@@ -312,7 +333,23 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const redirectUrl = `${SPOYNT_BASE_URL}/hpp/?cpi=${encodeURIComponent(cpi)}`;
+        await spoyntService.upsertCreatedInvoice({
+            cpi,
+            referenceId,
+            userId: payload.sub,
+            tokens,
+            requestedCurrency,
+            requestedAmount: requestedAmountInCurrency,
+            chargedCurrency: invoiceCurrency,
+            chargedAmount: invoiceAmount,
+            status: invoiceAttempt.json?.data?.attributes?.status || "created",
+            resolution: invoiceAttempt.json?.data?.attributes?.resolution ?? null,
+            providerUpdatedAt: invoiceAttempt.json?.data?.attributes?.updated ?? null,
+        });
+
+        const redirectUrl =
+            invoiceAttempt.json?.data?.attributes?.hpp_url ||
+            `${SPOYNT_BASE_URL}/redirect/hpp/?cpi=${encodeURIComponent(cpi)}`;
 
         return NextResponse.json({
             cpi,

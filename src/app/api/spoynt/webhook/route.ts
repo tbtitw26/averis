@@ -1,7 +1,7 @@
 // app/api/spoynt/webhook/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { userController } from "@/backend/controllers/user.controller";
+import { spoyntService } from "@/backend/services/spoynt.service";
 
 function assertEnv(name: string): string {
     const v = process.env[name];
@@ -55,36 +55,49 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: "Unsupported callback type" }, { status: 200 });
         }
 
-        const status = attrs?.status;         // наприклад processed :contentReference[oaicite:11]{index=11}
-        const resolution = attrs?.resolution; // ok :contentReference[oaicite:12]{index=12}
-        const metadata = attrs?.metadata || {};
+        const status = String(attrs?.status || "created");
+        const resolution = attrs?.resolution ? String(attrs.resolution) : null;
+        const metadata =
+            attrs?.metadata && typeof attrs.metadata === "object" && !Array.isArray(attrs.metadata)
+                ? attrs.metadata
+                : {};
 
-        // 1) Ідемпотентність: не можна зарахувати двічі один cpi
-        // TODO: перевірити в Mongo, чи cpi уже "credited".
-        // if (await SpoyntPayment.exists({ cpi, credited: true })) return 200;
+        const referenceId = String(attrs?.reference_id || "");
+        const payment = (await spoyntService.getPaymentByCpi(cpi)) || (referenceId
+            ? await spoyntService.getPaymentByReference(referenceId)
+            : null);
+        const userId = String(metadata.user_id || payment?.userId || "");
+        const tokens = Number(metadata.tokens ?? payment?.tokens ?? NaN);
+        const chargedCurrency = String(attrs?.currency || payment?.chargedCurrency || "");
+        const chargedAmount = Number(attrs?.amount ?? payment?.chargedAmount ?? NaN);
+        const requestedCurrency = String(metadata.ui_currency || payment?.requestedCurrency || chargedCurrency);
+        const requestedAmount = Number(metadata.ui_amount ?? payment?.requestedAmount ?? chargedAmount);
+        const resolvedReferenceId = String(referenceId || payment?.referenceId || "");
+        const providerUpdatedAt = Number(attrs?.updated ?? payment?.providerUpdatedAt ?? NaN);
 
-        if (status === "processed" && resolution === "ok") {
-            const userId = metadata.user_id;
-            const tokensStr = metadata.tokens;
+        const result = await spoyntService.processInvoice({
+            cpi,
+            referenceId: resolvedReferenceId,
+            userId,
+            tokens,
+            requestedCurrency,
+            requestedAmount,
+            chargedCurrency,
+            chargedAmount,
+            status,
+            resolution,
+            providerUpdatedAt: Number.isFinite(providerUpdatedAt) ? providerUpdatedAt : null,
+        });
 
-            const tokens = Number(tokensStr);
-            if (!userId || !Number.isFinite(tokens) || tokens <= 0) {
-                return NextResponse.json({ message: "Missing metadata for crediting" }, { status: 200 });
-            }
-
-            // 2) Зарахування токенів тільки тут
-            await userController.buyTokens(userId, Math.floor(tokens));
-
-            // TODO: помітити транзакцію як credited: true (по cpi або reference_id)
-            // await SpoyntPayment.updateOne({ cpi }, { $set: { credited: true, status, resolution } }, { upsert: true });
-
-            return NextResponse.json({ ok: true });
+        if (result.state === "invalid") {
+            return NextResponse.json({ message: result.message }, { status: 200 });
         }
 
-        // TODO: оновлювати статуси pending/failed в БД
         return NextResponse.json({ ok: true });
-    } catch (err: any) {
-        // Вебхук краще не фейлити “жорстко”, але invalid signature треба відбивати.
-        return NextResponse.json({ message: err?.message || "Webhook error" }, { status: 400 });
+    } catch (err: unknown) {
+        return NextResponse.json(
+            { message: err instanceof Error ? err.message : "Webhook error" },
+            { status: 400 }
+        );
     }
 }
