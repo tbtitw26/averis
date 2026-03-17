@@ -1,0 +1,3 @@
+module.exports=[35125,a=>{"use strict";a.s(["default",()=>d]);var b=a.i(87924),c=a.i(50944);function d(){let a=(0,c.useSearchParams)(),d=a.get("reason")||a.get("message")||"";return(0,b.jsxs)("main",{style:{maxWidth:720,margin:"0 auto",padding:24},children:[(0,b.jsx)("h1",{children:"Payment failed"}),(0,b.jsxs)("p",{style:{color:"crimson"},children:["Your payment was not completed",d?`: ${d}`:"."]}),(0,b.jsx)("div",{style:{marginTop:16},children:(0,b.jsx)("a",{href:"/pricing",children:"Try again"})})]})}}];
+
+//# sourceMappingURL=src_app_payment_error_page_tsx_230f9a78._.js.map

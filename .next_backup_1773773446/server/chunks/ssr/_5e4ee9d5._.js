@@ -1,0 +1,3 @@
+module.exports=[790,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(11857);a.n(d("[project]/node_modules/next/dist/client/app-dir/link.js <module evaluation>"))},84707,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(11857);a.n(d("[project]/node_modules/next/dist/client/app-dir/link.js"))},97647,a=>{"use strict";a.i(790);var b=a.i(84707);a.n(b)},3363,a=>{"use strict";a.s(["default",()=>d]);var b=a.i(7997),c=a.i(97647);function d(){return(0,b.jsxs)("main",{style:{maxWidth:720,margin:"0 auto",padding:24},children:[(0,b.jsx)("h1",{children:"404"}),(0,b.jsx)("p",{children:"This page does not exist."}),(0,b.jsx)("div",{style:{marginTop:16},children:(0,b.jsx)(c.default,{href:"/",children:"Go home"})})]})}}];
+
+//# sourceMappingURL=_5e4ee9d5._.js.map

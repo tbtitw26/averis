@@ -1,0 +1,3 @@
+{
+  "/api/ai/create-order/route": "app/api/ai/create-order/route.js"
+}
