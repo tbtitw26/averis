@@ -5,6 +5,7 @@ import { transactionService } from "../services/transaction.service";
 import OpenAI from "openai";
 import { ENV } from "../config/env";
 import mongoose from "mongoose";
+import { sendOrderConfirmationIfNeeded } from "@/backend/services/mail.service";
 
 const openai = new OpenAI({ apiKey: ENV.OPENAI_API_KEY });
 
@@ -197,6 +198,22 @@ export const universalService = {
 
         const order = await UniversalOrder.create(orderDoc);
         console.log("✅ Order saved successfully:", order._id);
+
+        await sendOrderConfirmationIfNeeded(UniversalOrder, order._id.toString(), {
+            user,
+            subject: "Order confirmation",
+            summary: "Your order has been completed successfully.",
+            amountLabel: "Tokens used",
+            amountValue: `${totalCost} tokens`,
+            details: [
+                { label: "Category", value: body.category },
+                { label: "Plan type", value: body.planType },
+                { label: "Language", value: body.language || "English" },
+                { label: "Order ID", value: order._id.toString() },
+            ],
+            transactionDate: order.createdAt,
+            ctaPath: "/profile",
+        });
 
         return order.toObject({ flattenMaps: true });
     },

@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import styles from "./PricingCard.module.scss";
 import ButtonUI from "@/components/ui/button/ButtonUI";
 import { useAlert } from "@/context/AlertContext";
@@ -200,8 +201,18 @@ const PricingCard: React.FC<PricingCardProps> = ({
                 <Checkbox
                     checked={isAgreed}
                     onChange={(e) => setIsAgreed(e.target.checked)}
-                    label="I have read and agree to the Terms and Conditions"
                 />
+
+                <span className={styles.checkboxText}>
+        I have read and agree to the{" "}
+                    <Link
+                        href="/terms-and-conditions"
+                        target="_blank"
+                        className={styles.termsLink}
+                    >
+            Terms and Conditions
+        </Link>
+    </span>
             </div>
 
             <ButtonUI fullWidth onClick={handleBuy} disabled={!isAgreed}>

@@ -219,6 +219,34 @@
   text-align: left;
 }
 
+.termsLink {
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.checkboxWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkboxText {
+  font-size: 14px;
+}
+
+.termsLink {
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
 /* 📱 Адаптив */
 @media (max-width: 768px) {
   .card {

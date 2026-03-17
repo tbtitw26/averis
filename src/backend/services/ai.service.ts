@@ -2,6 +2,8 @@ import { AiOrder } from "../models/aiOrder.model";
 import { User } from "../models/user.model";
 import { ENV } from "../config/env";
 import OpenAI from "openai";
+import { transactionService } from "../services/transaction.service";
+import { sendOrderConfirmationIfNeeded } from "@/backend/services/mail.service";
 
 const openai = new OpenAI({ apiKey: ENV.OPENAI_API_KEY });
 
@@ -22,6 +24,7 @@ export const aiService = {
 
         user.tokens -= finalCost;
         await user.save();
+        await transactionService.record(user._id, user.email, finalCost, "spend", user.tokens);
 
         let chunksCount = 1;
         for (const key in LENGTH_MAP) {
@@ -55,6 +58,22 @@ export const aiService = {
             email,
             prompt,
             response: polishedText.trim(),
+            tokensUsed: finalCost,
+        });
+
+        await sendOrderConfirmationIfNeeded(AiOrder, order._id.toString(), {
+            user,
+            subject: "AI order confirmation",
+            summary: "Your AI order has been completed successfully.",
+            amountLabel: "Tokens used",
+            amountValue: `${finalCost} tokens`,
+            details: [
+                { label: "Service", value: "AI prompt generation" },
+                { label: "Prompt preview", value: prompt.slice(0, 120) || "Custom prompt" },
+                { label: "Order ID", value: order._id.toString() },
+            ],
+            transactionDate: order.createdAt,
+            ctaPath: "/profile",
         });
 
         return order;

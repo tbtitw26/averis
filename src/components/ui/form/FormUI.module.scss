@@ -44,9 +44,12 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
 
-  button {
-    margin-top: 16px;
+.submitButton {
+  margin-top: 16px;
+
+  :global(button) {
     border-radius: 12px !important;
     font-weight: 700 !important;
     font-size: 1rem !important;
@@ -63,6 +66,10 @@
   }
 }
 
+.formContainerWide {
+  max-width: 760px;
+}
+
 @media (max-width: 480px) {
   .formContainer {
     padding: 24px;
@@ -71,6 +78,38 @@
 
   .title {
     font-size: 1.5rem;
+  }
+}
+
+.fieldsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fieldSpanFull {
+  grid-column: 1 / -1;
+}
+
+.fieldLabel {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+@media (max-width: 640px) {
+  .fieldsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldSpanFull {
+    grid-column: auto;
   }
 }
 

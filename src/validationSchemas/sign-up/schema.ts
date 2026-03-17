@@ -1,42 +1,45 @@
 import { AlertColor } from "@mui/material/Alert";
+import { SignUpValues } from "@/components/widgets/sign-up/SignUp";
+import { validateRegistrationInput } from "@/shared/auth/registration";
 
 export const signUpInitialValues = {
-    name: "",
+    firstName: "",
+    lastName: "",
+    phoneNumber: "",
+    dateOfBirth: "",
     email: "",
+    street: "",
+    city: "",
+    country: "",
+    postCode: "",
     password: "",
-    terms: false, // ✅ нове поле
+    confirmPassword: "",
+    terms: false,
 };
 
-type SignUpErrors = {
-    name?: string;
-    email?: string;
-    password?: string;
-    terms?: string;
-};
-
-export const signUpValidation = (values: typeof signUpInitialValues) => {
-    const errors: SignUpErrors = {};
-
-    if (!values.name) errors.name = "Required";
-    if (!values.email) errors.email = "Required";
-    if (!values.password) errors.password = "Required";
-    if (!values.terms)
-        errors.terms = "You must agree to the Terms and Conditions";
-
-    return errors;
+export const signUpValidation = (values: SignUpValues) => {
+    return validateRegistrationInput(values, {
+        requireConfirmPassword: true,
+        requireTerms: true,
+    }).errors;
 };
 
 export const signUpOnSubmit = async (
-    values: typeof signUpInitialValues,
+    values: SignUpValues,
     { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void },
     showAlert: (msg: string, desc?: string, severity?: AlertColor) => void,
     router: { replace: (url: string) => void; refresh: () => void }
 ) => {
     try {
+        const payload = validateRegistrationInput(values, {
+            requireConfirmPassword: true,
+            requireTerms: true,
+        }).values;
+
         const res = await fetch("/api/auth/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(values),
+            body: JSON.stringify(payload),
         });
         const data = await res.json();
 

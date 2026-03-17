@@ -13,6 +13,8 @@ export interface UniversalOrderDocument extends Document {
 
     response: string;
     extrasData: Record<string, string>;
+    confirmationEmailSentAt?: Date | null;
+    confirmationEmailProcessing?: boolean;
 
     status: "pending" | "ready";
     readyAt: Date;
@@ -35,6 +37,8 @@ const universalOrderSchema = new Schema<UniversalOrderDocument>(
 
         response: { type: String, default: "" },
         extrasData: { type: Map, of: String, default: {} },
+        confirmationEmailSentAt: { type: Date, default: null },
+        confirmationEmailProcessing: { type: Boolean, default: false },
 
         status: { type: String, enum: ["pending", "ready"], default: "ready" },
         readyAt: { type: Date },
