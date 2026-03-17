@@ -21,9 +21,11 @@ export interface CVOrderType {
 
     reviewType: "default" | "manager";
     extras: string[];
+    totalTokens: number;
 
     response: string;
     extrasData?: Record<string, string>;
+    confirmationEmailSentAt?: Date | null;
 
     status: "pending" | "ready";
     readyAt: Date;

@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "migrate:user-profile-fields": "node --env-file=.env scripts/backfill-user-profile-fields.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

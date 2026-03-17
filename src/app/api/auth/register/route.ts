@@ -11,7 +11,17 @@ export async function POST(req: NextRequest) {
         return res;
     } catch (e: any) {
         const msg = e?.message || "Registration error";
-        const code = msg.includes("registered") ? 400 : 500;
+        const knownMessages = [
+            "registered",
+            "required",
+            "valid",
+            "match",
+        ];
+        const code = knownMessages.some((part) =>
+            msg.toLowerCase().includes(part)
+        )
+            ? 400
+            : 500;
         return NextResponse.json({ type: "EmailAlreadyRegistered", message: msg }, { status: code });
     }
 }

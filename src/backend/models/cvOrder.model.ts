@@ -21,9 +21,12 @@ export interface CVOrderDocument extends Document {
 
     reviewType: "default" | "manager";
     extras: string[];
+    totalTokens: number;
 
     response: string;
     extrasData: Record<string, string>;
+    confirmationEmailSentAt?: Date | null;
+    confirmationEmailProcessing?: boolean;
 
     status: "pending" | "ready";
     readyAt: Date;
@@ -52,8 +55,11 @@ const cvOrderSchema = new Schema<CVOrderDocument>(
 
         reviewType: { type: String, enum: ["default", "manager"], default: "default" },
         extras: [{ type: String }],
+        totalTokens: { type: Number, required: true, default: 0 },
         response: { type: String, required: false, default: "" },
         extrasData: { type: Map, of: String, default: {} },
+        confirmationEmailSentAt: { type: Date, default: null },
+        confirmationEmailProcessing: { type: Boolean, default: false },
 
         status: { type: String, enum: ["pending", "ready"], default: "ready" },
         readyAt: { type: Date, required: true },

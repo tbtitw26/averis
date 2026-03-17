@@ -15,11 +15,12 @@ const ProfileHead = () => {
 
             <div className={styles.hero__text}>
                 <h1 className={styles.hero__title}>
-                    Welcome back, <span>{user?.name || "Athlete"}</span> 💪
+                    Welcome back, <span>{user?.firstName || user?.name || "Athlete"}</span> 💪
                 </h1>
                 <p className={styles.hero__subtitle}>
-                    Your personalized dashboard — track tokens, view your progress, and
-                    manage your fitness plans.
+                    {user?.phoneNumber
+                        ? `${user.email} · ${user.phoneNumber}`
+                        : "Your personalized dashboard — track tokens, view your progress, and manage your fitness plans."}
                 </p>
 
                 <div className={styles.hero__stats}>
