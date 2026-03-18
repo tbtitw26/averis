@@ -8,23 +8,11 @@ import crypto from "crypto";
 
 const TOKENS_PER_GBP = 100;
 const RATES_TO_GBP = {
-    GBP: 1,
-    EUR: 1.17,
-    // USD: 1.27,
+    AUD: 2.04,
+    CAD: 1.76,
+    NZD: 2.22,
 } as const;
 const MIN_AMOUNT = 10;
-const EUR_FALLBACK_MARKERS = [
-    "inactive",
-    "not active",
-    "disabled",
-    "not enabled",
-    "unsupported",
-    "not supported",
-    "unavailable",
-    "not available",
-    "service",
-    "currency",
-];
 
 type SupportedCurrency = keyof typeof RATES_TO_GBP;
 
@@ -88,6 +76,17 @@ type RedirectInstruction = {
     params: Record<string, string>;
 };
 
+function paymentLog(event: string, payload: Record<string, unknown>) {
+    console.info(
+        JSON.stringify({
+            scope: "spoynt.create_invoice",
+            event,
+            ts: new Date().toISOString(),
+            ...payload,
+        }, null, 2)
+    );
+}
+
 function assertEnv(name: string): string {
     const v = process.env[name];
     if (!v) throw new Error(`Missing env: ${name}`);
@@ -108,18 +107,15 @@ function round2(n: number) {
     return Math.round(n * 100) / 100;
 }
 
-function getServiceForCurrency(currency: SupportedCurrency, fallback: string) {
-    if (currency === "GBP") return fallback;
-
+function getServiceForCurrency(currency: SupportedCurrency) {
     const envName = `SPOYNT_DEFAULT_SERVICE_${currency}`;
-    return optionalEnv(envName);
-}
+    const service = optionalEnv(envName);
 
-function shouldFallbackToGBP(currency: SupportedCurrency, details: string) {
-    if (currency !== "EUR") return false;
+    if (service) {
+        return service;
+    }
 
-    const normalizedDetails = details.toLowerCase();
-    return EUR_FALLBACK_MARKERS.some((marker) => normalizedDetails.includes(marker));
+    return `payment_card_${currency.toLowerCase()}_hpp`;
 }
 
 async function createSpoyntInvoice({
@@ -263,24 +259,28 @@ function resolveRedirectInstruction(
 
 export async function POST(req: NextRequest) {
     try {
+        paymentLog("request.received", { path: req.nextUrl.pathname });
         const payload = await requireAuth(req);
         const body = await req.json().catch(() => ({}));
+        paymentLog("request.authenticated", { userId: payload.sub, email: payload.email, body });
         await connectDB();
         const user = await User.findById(payload.sub).lean();
 
         // Вхідні варіанти:
         // A) preset: { tokens: number }
-        // B) custom: { currency: "GBP"|"EUR", amount: number }  (сума в валюті UI)
-        //    // "USD" тимчасово вимкнений
+        // B) custom: { currency: "AUD"|"CAD"|"NZD", amount: number }  (сума в валюті UI)
 
-        let requestedCurrency: SupportedCurrency = "GBP";
+        let requestedCurrency: SupportedCurrency = "AUD";
         let requestedAmountInCurrency: number;
         let tokens: number;
 
         if (typeof body.tokens === "number" && body.tokens > 0) {
             tokens = Math.floor(body.tokens);
-            requestedCurrency = "GBP";
-            requestedAmountInCurrency = round2(tokens / TOKENS_PER_GBP);
+            if (!body.currency || !Object.keys(RATES_TO_GBP).includes(String(body.currency))) {
+                return NextResponse.json({ message: "Unsupported currency" }, { status: 400 });
+            }
+            requestedCurrency = String(body.currency) as SupportedCurrency;
+            requestedAmountInCurrency = round2((tokens / TOKENS_PER_GBP) * RATES_TO_GBP[requestedCurrency]);
             if (requestedAmountInCurrency < MIN_AMOUNT) {
                 return NextResponse.json({ message: "Minimum is 10" }, { status: 400 });
             }
@@ -310,19 +310,21 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const requestedGbpAmount =
-            requestedCurrency === "GBP"
-                ? requestedAmountInCurrency
-                : round2(requestedAmountInCurrency / RATES_TO_GBP[requestedCurrency]);
-
-        if (requestedGbpAmount < 0.01) {
+        if (round2(requestedAmountInCurrency / RATES_TO_GBP[requestedCurrency]) < 0.01) {
             return NextResponse.json({ message: "Minimum is 0.01" }, { status: 400 });
         }
+
+        paymentLog("invoice.normalized", {
+            userId: payload.sub,
+            requestedCurrency,
+            requestedAmountInCurrency,
+            requestedAmountInGbp: round2(requestedAmountInCurrency / RATES_TO_GBP[requestedCurrency]),
+            tokens,
+        });
 
         const SPOYNT_BASE_URL = assertEnv("SPOYNT_BASE_URL");
         const SPOYNT_ACCOUNT_ID = assertEnv("SPOYNT_ACCOUNT_ID");
         const SPOYNT_API_KEY = assertEnv("SPOYNT_API_KEY");
-        const SPOYNT_DEFAULT_SERVICE = assertEnv("SPOYNT_DEFAULT_SERVICE");
         const SPOYNT_CALLBACK_URL = assertEnv("SPOYNT_CALLBACK_URL");
         const SPOYNT_RETURN_SUCCESS = assertEnv("SPOYNT_RETURN_SUCCESS");
         const SPOYNT_RETURN_FAIL = assertEnv("SPOYNT_RETURN_FAIL");
@@ -357,78 +359,47 @@ export async function POST(req: NextRequest) {
                     },
                 }
                 : undefined;
-        let invoiceCurrency: SupportedCurrency = requestedCurrency;
-        let invoiceAmount = requestedAmountInCurrency;
-        let fallbackToGBP = false;
+        const invoiceCurrency: SupportedCurrency = requestedCurrency;
+        const invoiceAmount = requestedAmountInCurrency;
+        const fallbackToGBP = false;
+        const selectedService = getServiceForCurrency(requestedCurrency);
 
-        let invoiceAttempt;
-
-        if (requestedCurrency === "EUR") {
-            const eurService = getServiceForCurrency("EUR", SPOYNT_DEFAULT_SERVICE);
-
-            if (eurService) {
-                invoiceAttempt = await createSpoyntInvoice({
-                    baseUrl: SPOYNT_BASE_URL,
-                    accountId: SPOYNT_ACCOUNT_ID,
-                    apiKey: SPOYNT_API_KEY,
-                    amount: requestedAmountInCurrency,
-                    currency: "EUR",
-                    service: eurService,
-                    callbackUrl: SPOYNT_CALLBACK_URL,
-                    returnUrls,
-                    referenceId,
-                    tokens,
-                    userId: payload.sub,
-                    requestedCurrency,
-                    requestedAmount: requestedAmountInCurrency,
-                    userEmail: payload.email,
-                    customer,
-                });
-            }
-
-            if (!eurService || (invoiceAttempt && !invoiceAttempt.ok && shouldFallbackToGBP("EUR", invoiceAttempt.text))) {
-                fallbackToGBP = true;
-                invoiceCurrency = "GBP";
-                invoiceAmount = requestedGbpAmount;
-
-                invoiceAttempt = await createSpoyntInvoice({
-                    baseUrl: SPOYNT_BASE_URL,
-                    accountId: SPOYNT_ACCOUNT_ID,
-                    apiKey: SPOYNT_API_KEY,
-                    amount: requestedGbpAmount,
-                    currency: "GBP",
-                    service: SPOYNT_DEFAULT_SERVICE,
-                    callbackUrl: SPOYNT_CALLBACK_URL,
-                    returnUrls,
-                    referenceId,
-                    tokens,
-                    userId: payload.sub,
-                    requestedCurrency,
-                    requestedAmount: requestedAmountInCurrency,
-                    userEmail: payload.email,
-                    customer,
-                    fallbackFromCurrency: "EUR",
-                });
-            }
-        } else {
-            invoiceAttempt = await createSpoyntInvoice({
-                baseUrl: SPOYNT_BASE_URL,
-                accountId: SPOYNT_ACCOUNT_ID,
-                apiKey: SPOYNT_API_KEY,
-                amount: requestedAmountInCurrency,
-                currency: requestedCurrency,
-                service: SPOYNT_DEFAULT_SERVICE,
-                callbackUrl: SPOYNT_CALLBACK_URL,
-                returnUrls,
-                referenceId,
-                tokens,
-                userId: payload.sub,
-                requestedCurrency,
-                requestedAmount: requestedAmountInCurrency,
-                userEmail: payload.email,
-                customer,
-            });
-        }
+        paymentLog("invoice.service.selected", {
+            requestedCurrency,
+            service: selectedService,
+        });
+        paymentLog("provider.request.start", {
+            currency: requestedCurrency,
+            amount: requestedAmountInCurrency,
+            service: selectedService,
+            referenceId,
+        });
+        const invoiceAttempt = await createSpoyntInvoice({
+            baseUrl: SPOYNT_BASE_URL,
+            accountId: SPOYNT_ACCOUNT_ID,
+            apiKey: SPOYNT_API_KEY,
+            amount: requestedAmountInCurrency,
+            currency: requestedCurrency,
+            service: selectedService,
+            callbackUrl: SPOYNT_CALLBACK_URL,
+            returnUrls,
+            referenceId,
+            tokens,
+            userId: payload.sub,
+            requestedCurrency,
+            requestedAmount: requestedAmountInCurrency,
+            userEmail: payload.email,
+            customer,
+        });
+        paymentLog("provider.request.finish", {
+            currency: requestedCurrency,
+            amount: requestedAmountInCurrency,
+            service: selectedService,
+            referenceId,
+            ok: invoiceAttempt.ok,
+            statusCode: invoiceAttempt.status,
+            cpi: invoiceAttempt.cpi ?? null,
+        });
 
         if (!invoiceAttempt?.ok) {
             console.error("[spoynt:create-invoice] provider_error", {
@@ -466,6 +437,16 @@ export async function POST(req: NextRequest) {
             resolution: invoiceAttempt.json?.data?.attributes?.resolution ?? null,
             providerUpdatedAt: invoiceAttempt.json?.data?.attributes?.updated ?? null,
         });
+        paymentLog("invoice.persisted", {
+            userId: payload.sub,
+            referenceId,
+            cpi,
+            chargedCurrency: invoiceCurrency,
+            chargedAmount: invoiceAmount,
+            requestedCurrency,
+            requestedAmount: requestedAmountInCurrency,
+            tokens,
+        });
 
         const redirect = resolveRedirectInstruction(invoiceAttempt.json);
 
@@ -479,6 +460,14 @@ export async function POST(req: NextRequest) {
                 { status: 502 }
             );
         }
+
+        paymentLog("redirect.resolved", {
+            referenceId,
+            cpi,
+            redirectMethod: redirect.method,
+            redirectUrl: redirect.url,
+            redirectParamKeys: Object.keys(redirect.params),
+        });
 
         return NextResponse.json({
             cpi,
@@ -495,6 +484,7 @@ export async function POST(req: NextRequest) {
         });
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Unknown error";
+        paymentLog("request.failed", { message });
         return NextResponse.json({ message }, { status: 400 });
     }
 }

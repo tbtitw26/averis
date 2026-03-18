@@ -19,6 +19,17 @@ type ConfirmPaymentResponse = {
     balanceAfter?: number | null;
 };
 
+function paymentLog(event: string, payload: Record<string, unknown>) {
+    console.info(
+        JSON.stringify({
+            scope: "payment.success_page",
+            event,
+            ts: new Date().toISOString(),
+            ...payload,
+        }, null, 2)
+    );
+}
+
 export default function PaymentSuccessPage() {
     const sp = useSearchParams();
     const router = useRouter();
@@ -41,6 +52,10 @@ export default function PaymentSuccessPage() {
         setIsMounted(true);
         setReferenceValue(sp.get("reference") || "");
         setCpiValue(sp.get("cpi") || sp.get("invoice") || "");
+        paymentLog("page.loaded", {
+            reference: sp.get("reference") || "",
+            cpi: sp.get("cpi") || sp.get("invoice") || "",
+        });
         try {
             const raw = localStorage.getItem("pendingPurchase");
             if (!raw) return;
@@ -101,12 +116,24 @@ export default function PaymentSuccessPage() {
 
                 for (let attempt = 0; attempt < 10; attempt += 1) {
                     if (cancelled) return;
+                    paymentLog("status.poll.start", {
+                        reference: referenceValue,
+                        cpi: cpiValue,
+                        attempt: attempt + 1,
+                    });
 
                     setState(attempt === 0 ? "loading" : "pending");
                     setMsg(attempt === 0 ? "Confirming your payment..." : "Payment is still processing. Re-checking...");
 
                     let res = await runConfirm();
                     let data = (await res.json().catch(() => ({}))) as ConfirmPaymentResponse;
+                    paymentLog("status.poll.response", {
+                        reference: referenceValue,
+                        cpi: cpiValue,
+                        attempt: attempt + 1,
+                        httpStatus: res.status,
+                        body: data,
+                    });
 
                     if (!res.ok) {
                         const isAuthError =
@@ -143,6 +170,12 @@ export default function PaymentSuccessPage() {
                     setMsg(
                         `Tokens credited: ${data?.tokens ?? pendingPurchase.tokens}. New balance: ${data?.balanceAfter ?? "—"}`
                     );
+                    paymentLog("status.poll.credited", {
+                        reference: referenceValue,
+                        cpi: cpiValue,
+                        tokens: data?.tokens ?? pendingPurchase.tokens,
+                        balanceAfter: data?.balanceAfter ?? null,
+                    });
                     localStorage.removeItem("pendingPurchase");
                     await loadLatestTransaction();
                     setTimeout(() => router.push("/dashboard"), 800);
@@ -154,6 +187,11 @@ export default function PaymentSuccessPage() {
                 if (cancelled) return;
                 setState("error");
                 setMsg(e instanceof Error ? e.message : "Something went wrong.");
+                paymentLog("status.poll.failed", {
+                    reference: referenceValue,
+                    cpi: cpiValue,
+                    message: e instanceof Error ? e.message : "Something went wrong.",
+                });
             }
         };
 
@@ -162,7 +200,7 @@ export default function PaymentSuccessPage() {
         return () => {
             cancelled = true;
         };
-    }, [isMounted, pendingPurchase, referenceValue, router]);
+    }, [cpiValue, isMounted, pendingPurchase, referenceValue, router]);
 
     const formattedPendingDate = pendingPurchase
         ? new Date(pendingPurchase.createdAt).toLocaleString("en-US", {

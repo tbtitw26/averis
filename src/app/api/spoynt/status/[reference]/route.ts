@@ -13,6 +13,17 @@ function basicAuthHeader(username: string, password: string) {
     return `Basic ${token}`;
 }
 
+function paymentLog(event: string, payload: Record<string, unknown>) {
+    console.info(
+        JSON.stringify({
+            scope: "spoynt.status",
+            event,
+            ts: new Date().toISOString(),
+            ...payload,
+        }, null, 2)
+    );
+}
+
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ reference: string }> }
@@ -20,6 +31,11 @@ export async function GET(
     try {
         const payload = await requireAuth(req);
         const { reference } = await params;
+        paymentLog("request.received", {
+            path: req.nextUrl.pathname,
+            userId: payload.sub,
+            reference,
+        });
 
         if (!reference) {
             return NextResponse.json({ message: "Missing reference" }, { status: 400 });
@@ -35,7 +51,19 @@ export async function GET(
             return NextResponse.json({ message: "Forbidden" }, { status: 403 });
         }
 
+        paymentLog("payment.loaded", {
+            reference,
+            cpi: payment.cpi,
+            creditStatus: payment.creditStatus,
+            storedStatus: payment.status,
+            storedResolution: payment.resolution,
+        });
+
         if (payment.creditStatus === "credited") {
+            paymentLog("payment.already_credited", {
+                reference,
+                tokens: payment.tokens,
+            });
             return NextResponse.json({
                 reference,
                 status: "credited",
@@ -96,10 +124,18 @@ export async function GET(
         });
 
         if (result.state === "invalid") {
+            paymentLog("payment.invalid", { reference, cpi: payment.cpi, message: result.message });
             return NextResponse.json({ message: result.message }, { status: 400 });
         }
 
         if (result.state === "credited") {
+            paymentLog("payment.credited", {
+                reference,
+                cpi: payment.cpi,
+                tokens: result.tokens,
+                balanceAfter: result.balanceAfter,
+                alreadyCredited: result.alreadyCredited,
+            });
             return NextResponse.json({
                 reference,
                 status: "credited",
@@ -109,12 +145,23 @@ export async function GET(
             });
         }
 
+        paymentLog("payment.pending_or_failed", {
+            reference,
+            cpi: payment.cpi,
+            state: result.state,
+            status: result.status,
+            resolution: result.resolution,
+        });
+
         return NextResponse.json({
             reference,
             status: result.state,
             spoynt: { status: result.status, resolution: result.resolution },
         });
     } catch (err: unknown) {
+        paymentLog("request.failed", {
+            message: err instanceof Error ? err.message : "Unknown error",
+        });
         return NextResponse.json(
             { message: err instanceof Error ? err.message : "Unknown error" },
             { status: 400 }

@@ -21,6 +21,17 @@ function spoyntSignature(secret: string, rawBody: string) {
     return Buffer.from(digest).toString("base64");
 }
 
+function paymentLog(event: string, payload: Record<string, unknown>) {
+    console.info(
+        JSON.stringify({
+            scope: "spoynt.webhook",
+            event,
+            ts: new Date().toISOString(),
+            ...payload,
+        }, null, 2)
+    );
+}
+
 export async function POST(req: NextRequest) {
     try {
         const secret = assertEnv("SPOYNT_PRIVATE_KEY");
@@ -31,6 +42,12 @@ export async function POST(req: NextRequest) {
             req.headers.get("x-signature") ||
             req.headers.get("X-Signature") ||
             "";
+
+        paymentLog("request.received", {
+            path: req.nextUrl.pathname,
+            signaturePresent: Boolean(theirSig),
+            bodyLength: rawBody.length,
+        });
 
         if (!theirSig) {
             return NextResponse.json({ message: "Missing X-Signature" }, { status: 400 });
@@ -75,6 +92,18 @@ export async function POST(req: NextRequest) {
         const resolvedReferenceId = String(referenceId || payment?.referenceId || "");
         const providerUpdatedAt = Number(attrs?.updated ?? payment?.providerUpdatedAt ?? NaN);
 
+        paymentLog("callback.parsed", {
+            cpi,
+            referenceId: resolvedReferenceId,
+            status,
+            resolution,
+            chargedCurrency,
+            chargedAmount,
+            requestedCurrency,
+            requestedAmount,
+            providerUpdatedAt: Number.isFinite(providerUpdatedAt) ? providerUpdatedAt : null,
+        });
+
         const result = await spoyntService.processInvoice({
             cpi,
             referenceId: resolvedReferenceId,
@@ -90,11 +119,31 @@ export async function POST(req: NextRequest) {
         });
 
         if (result.state === "invalid") {
+            paymentLog("callback.invalid", { cpi, message: result.message });
             return NextResponse.json({ message: result.message }, { status: 200 });
         }
 
+        paymentLog("callback.processed", {
+            cpi,
+            referenceId: resolvedReferenceId,
+            state: result.state,
+            ...(result.state === "credited"
+                ? {
+                    tokens: result.tokens,
+                    balanceAfter: result.balanceAfter,
+                    alreadyCredited: result.alreadyCredited,
+                }
+                : {
+                    status: result.status,
+                    resolution: result.resolution,
+                }),
+        });
+
         return NextResponse.json({ ok: true });
     } catch (err: unknown) {
+        paymentLog("request.failed", {
+            message: err instanceof Error ? err.message : "Webhook error",
+        });
         return NextResponse.json(
             { message: err instanceof Error ? err.message : "Webhook error" },
             { status: 400 }

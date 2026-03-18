@@ -3,9 +3,9 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 
 export type Currency =
-    | "GBP"
-    | "EUR";
-// | "USD";
+    | "AUD"
+    | "CAD"
+    | "NZD";
 
 interface CurrencyContextType {
     currency: Currency;
@@ -17,23 +17,23 @@ interface CurrencyContextType {
 }
 
 const CURRENCY_SIGNS: Record<Currency, string> = {
-    GBP: "£",
-    EUR: "€",
-    // USD: "$",
+    AUD: "A$",
+    CAD: "C$",
+    NZD: "NZ$",
 };
 
 // 1 GBP = X currency
 const RATES: Record<Currency, number> = {
-    GBP: 1,
-    EUR: 1.17,
-    // USD: 1.27,
+    AUD: 2.04,
+    CAD: 1.76,
+    NZD: 2.22,
 };
 
 const CurrencyContext = createContext<CurrencyContextType>({
-    currency: "GBP",
+    currency: "AUD",
     setCurrency: () => {},
-    sign: "£",
-    rateToGBP: 1,
+    sign: "A$",
+    rateToGBP: 2.04,
     convertFromGBP: (v) => v,
     convertToGBP: (v) => v,
 });
@@ -41,7 +41,7 @@ const CurrencyContext = createContext<CurrencyContextType>({
 export const useCurrency = () => useContext(CurrencyContext);
 
 export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
-    const [currency, setCurrency] = useState<Currency>("GBP");
+    const [currency, setCurrency] = useState<Currency>("AUD");
 
     const rateToGBP = RATES[currency];
     const sign = CURRENCY_SIGNS[currency];

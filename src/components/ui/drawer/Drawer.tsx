@@ -49,27 +49,25 @@ const DrawerMenu: FC<DrawerMenuProps> = ({ open, onClose }) => {
                     <div className={styles.currencySwitch}>
                         <div className={`${styles.toggle} ${styles[currency.toLowerCase()]}`}>
                             <span
-                                className={`${styles.label} ${currency === "GBP" ? styles.activeLabel : ""}`}
-                                onClick={() => setCurrency("GBP")}
+                                className={`${styles.label} ${currency === "AUD" ? styles.activeLabel : ""}`}
+                                onClick={() => setCurrency("AUD")}
                             >
-                                GBP
+                                AUD
                             </span>
 
                             <span
-                                className={`${styles.label} ${currency === "EUR" ? styles.activeLabel : ""}`}
-                                onClick={() => setCurrency("EUR")}
+                                className={`${styles.label} ${currency === "CAD" ? styles.activeLabel : ""}`}
+                                onClick={() => setCurrency("CAD")}
                             >
-                                EUR
+                                CAD
                             </span>
 
-                            {/*
                             <span
-                                className={`${styles.label} ${currency === "USD" ? styles.activeLabel : ""}`}
-                                onClick={() => setCurrency("USD")}
+                                className={`${styles.label} ${currency === "NZD" ? styles.activeLabel : ""}`}
+                                onClick={() => setCurrency("NZD")}
                             >
-                                USD
+                                NZD
                             </span>
-                            */}
 
                             <div className={styles.thumb} />
                         </div>

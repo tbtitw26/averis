@@ -13,10 +13,26 @@ function basicAuthHeader(username: string, password: string) {
     return `Basic ${token}`;
 }
 
+function paymentLog(event: string, payload: Record<string, unknown>) {
+    console.info(
+        JSON.stringify({
+            scope: "spoynt.confirm",
+            event,
+            ts: new Date().toISOString(),
+            ...payload,
+        }, null, 2)
+    );
+}
+
 export async function GET(req: NextRequest) {
     try {
         const payload = await requireAuth(req);
         const cpi = new URL(req.url).searchParams.get("cpi");
+        paymentLog("request.received", {
+            path: req.nextUrl.pathname,
+            userId: payload.sub,
+            cpi,
+        });
 
         if (!cpi) return NextResponse.json({ message: "Missing cpi" }, { status: 400 });
 
@@ -83,10 +99,18 @@ export async function GET(req: NextRequest) {
         });
 
         if (result.state === "invalid") {
+            paymentLog("payment.invalid", { cpi, message: result.message });
             return NextResponse.json({ message: result.message }, { status: 400 });
         }
 
         if (result.state === "credited") {
+            paymentLog("payment.credited", {
+                cpi,
+                referenceId,
+                tokens: result.tokens,
+                balanceAfter: result.balanceAfter,
+                alreadyCredited: result.alreadyCredited,
+            });
             return NextResponse.json({
                 status: "credited",
                 tokens: result.tokens,
@@ -95,12 +119,23 @@ export async function GET(req: NextRequest) {
             });
         }
 
+        paymentLog("payment.pending_or_failed", {
+            cpi,
+            referenceId,
+            state: result.state,
+            status: result.status,
+            resolution: result.resolution,
+        });
+
         return NextResponse.json({
             status: result.state,
             message: result.state === "pending" ? "Payment is still pending" : "Payment not confirmed",
             spoynt: { status: result.status, resolution: result.resolution },
         });
     } catch (err: unknown) {
+        paymentLog("request.failed", {
+            message: err instanceof Error ? err.message : "Unknown error",
+        });
         return NextResponse.json(
             { message: err instanceof Error ? err.message : "Unknown error" },
             { status: 400 }

@@ -65,7 +65,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 92px;
+    width: 138px;
     height: 38px;
     border-radius: 9999px;
     background: linear-gradient(145deg, #012d29, #04413d);
@@ -103,7 +103,7 @@
     position: absolute;
     top: 3px;
     left: 3px;
-    width: 42px;
+    width: 40px;
     height: 32px;
     border-radius: 9999px;
     background: linear-gradient(145deg, #21e4a0, #2ddbb6);
@@ -114,17 +114,17 @@
 
   /* 🔥 Правильне переміщення */
 
-  .toggle.gbp .thumb {
+  .toggle.aud .thumb {
     transform: translateX(0);
   }
 
-  .toggle.eur .thumb {
-    transform: translateX(44px);
+  .toggle.cad .thumb {
+    transform: translateX(46px);
   }
 
-  // .toggle.usd .thumb {
-  //   transform: translateX(87px);
-  // }
+  .toggle.nzd .thumb {
+    transform: translateX(92px);
+  }
 }
 
 .menuButton {

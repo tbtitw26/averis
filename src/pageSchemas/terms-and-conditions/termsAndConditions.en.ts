@@ -55,7 +55,7 @@ const termsSchema: PageSchema = {
                 "Add-ons / Extras – optional paid features or modules (e.g., extended program duration, multiple goal variants, enriched analytics, nutrition companion module where available).",
                 "Order – a confirmed transaction to purchase Tokens and/or to redeem Tokens for Services.",
                 "Services – the Averis platform and its features including the fitness intake forms, AI-assisted plan generation, optional human-coach review (if available in your region/plan), PDF creation, and delivery of digital content.",
-                "Checkout Currency – GBP (£) or EUR (€), as selected at checkout.",
+                "Checkout Currency – AUD (A$), CAD (C$), or NZD (NZ$), as selected at checkout.",
             ],
         },
 
@@ -77,7 +77,7 @@ const termsSchema: PageSchema = {
             type: "text",
             title: "5. Ordering, Payment & Checkout",
             description:
-                "Accepted payment methods: Visa, Mastercard · Accepted currencies: GBP (£), EUR (€)\n\nOrders are subject to acceptance; we may refuse orders to prevent fraud or technical errors.\n\nBy paying, you confirm you are authorised to use the selected card.\n\nPlans and PDFs are delivered electronically; generation time varies by system load.",
+                "Accepted payment methods: Visa, Mastercard · Accepted currencies: AUD (A$), CAD (C$), NZD (NZ$)\n\nOrders are subject to acceptance; we may refuse orders to prevent fraud or technical errors.\n\nBy paying, you confirm you are authorised to use the selected card.\n\nPlans and PDFs are delivered electronically; generation time varies by system load.",
         },
 
         {

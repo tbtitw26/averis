@@ -4,9 +4,9 @@ import { userController } from "@/backend/controllers/user.controller";
 
 const TOKENS_PER_GBP = 100;
 const RATES_TO_GBP = {
-    GBP: 1,
-    EUR: 1.17,
-    // USD: 1.27,
+    AUD: 2.04,
+    CAD: 1.76,
+    NZD: 2.22,
 } as const;
 const MIN_AMOUNT = 10;
 

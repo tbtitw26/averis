@@ -16,13 +16,24 @@ const MIN_AMOUNT = 10;
 
 type PurchaseRequestBody =
     | { currency: string; amount: number }
-    | { tokens: number };
+    | { tokens: number; currency: string };
 
 type RedirectInstruction = {
     url: string;
     method?: "GET" | "POST";
     params?: Record<string, string>;
 };
+
+function paymentLog(event: string, payload: Record<string, unknown>) {
+    console.info(
+        JSON.stringify({
+            scope: "payment.client",
+            event,
+            ts: new Date().toISOString(),
+            ...payload,
+        }, null, 2)
+    );
+}
 
 interface PricingCardProps {
     variant?: "starter" | "pro" | "premium" | "custom";
@@ -82,6 +93,17 @@ const PricingCard: React.FC<PricingCardProps> = ({
     );
 
     const handleBuy = async () => {
+        paymentLog("buy.clicked", {
+            variant,
+            title,
+            isCustom,
+            currency,
+            customAmountRaw,
+            tokens,
+            isAgreed,
+            isAuthenticated: Boolean(user),
+        });
+
         if (!isAgreed) {
             showAlert("Agreement required", "Please accept the terms before purchase", "warning");
             return;
@@ -120,7 +142,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
                     return;
                 }
 
-                body = { tokens };
+                body = { tokens, currency };
             }
 
             const res = await fetch(endpoint, {
@@ -159,6 +181,12 @@ const PricingCard: React.FC<PricingCardProps> = ({
             };
 
             localStorage.setItem("pendingPurchase", JSON.stringify(purchaseIntent));
+            paymentLog("invoice.created", {
+                variant,
+                title,
+                redirectUrl: data.redirect?.url || data.redirectUrl || null,
+                redirectMethod: data.redirect?.method || data.redirectMethod || "GET",
+            });
 
             const redirect = data.redirect || {
                 url: data.redirectUrl || "",
@@ -171,6 +199,11 @@ const PricingCard: React.FC<PricingCardProps> = ({
             }
 
             if ((redirect.method || "GET") === "POST") {
+                paymentLog("redirect.submitting_form", {
+                    redirectUrl: redirect.url,
+                    redirectMethod: "POST",
+                    redirectParamKeys: Object.keys(redirect.params || {}),
+                });
                 const form = document.createElement("form");
                 form.method = "POST";
                 form.action = redirect.url;
@@ -189,9 +222,14 @@ const PricingCard: React.FC<PricingCardProps> = ({
                 return;
             }
 
+            paymentLog("redirect.navigating", {
+                redirectUrl: redirect.url,
+                redirectMethod: redirect.method || "GET",
+            });
             window.location.assign(redirect.url);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Something went wrong";
+            paymentLog("buy.failed", { message });
             showAlert("Error", message, "error");
         }
     };
