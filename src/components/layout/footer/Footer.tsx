@@ -8,9 +8,10 @@ import styles from "./Footer.module.scss";
 import { footerContent } from "@/resources/content";
 import { footerStyles } from "@/resources/styles-config";
 import {SmartLinkProps} from "@/types/smart-link";
-import {FaApplePay, FaCcAmex, FaCcMastercard, FaCcVisa, FaFacebookF, FaGooglePay, FaInstagram, FaLinkedinIn, FaTwitter} from "react-icons/fa";
+import {FaApplePay, FaCcAmex, FaGooglePay, FaInstagram} from "react-icons/fa";
 import visa from "@/assets/cards/visa.png";
 import mastercard from "@/assets/cards/mastercard.png";
+import pciDss from "@/assets/cards/pci-dss-compliant-logo-vector.svg";
 
 const SmartLink: React.FC<SmartLinkProps> = ({
                                                  href,
@@ -58,18 +59,23 @@ const Footer: React.FC = () => {
     const PaymentMethods = () => (
         <div className={styles["footer__payments"]}>
             <div className={styles.paymentsContent}>
-                    <Image
-                        src={visa}
-                        alt="Visa"
-                        placeholder="blur"
-                        className={styles.paymentIcon}
-                    />
-                    <Image
-                        src={mastercard}
-                        alt="Mastercard"
-                        placeholder="blur"
-                        className={styles.paymentIcon}
-                    />
+                <Image
+                    src={visa}
+                    alt="Visa"
+                    placeholder="blur"
+                    className={styles.paymentIcon}
+                />
+                <Image
+                    src={mastercard}
+                    alt="Mastercard"
+                    placeholder="blur"
+                    className={styles.paymentIcon}
+                />
+                <Image
+                    src={pciDss}
+                    alt="PCI DSS Compliant"
+                    className={styles.paymentIcon}
+                />
             </div>
         </div>
     );
@@ -314,8 +320,23 @@ const Footer: React.FC = () => {
                         <div className={styles["footer__corporate-col"]}>
                             <div className={styles["footer__column-title"]}>Accepted Payments</div>
                             <div className={styles.paymentsContent}>
-                                <FaCcVisa className={styles.paymentIcon} />
-                                <FaCcMastercard className={styles.paymentIcon} />
+                                <Image
+                                    src={visa}
+                                    alt="Visa"
+                                    placeholder="blur"
+                                    className={styles.paymentIcon}
+                                />
+                                <Image
+                                    src={mastercard}
+                                    alt="Mastercard"
+                                    placeholder="blur"
+                                    className={styles.paymentIcon}
+                                />
+                                <Image
+                                    src={pciDss}
+                                    alt="PCI DSS Compliant"
+                                    className={styles.paymentIcon}
+                                />
                                 <FaCcAmex className={styles.paymentIcon} />
                                 <FaGooglePay className={styles.paymentIcon} />
                                 <FaApplePay className={styles.paymentIcon} />
