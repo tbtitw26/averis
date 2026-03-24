@@ -4,6 +4,7 @@ import { requireAuth } from "@/backend/middlewares/auth.middleware";
 import { connectDB } from "@/backend/config/db";
 import { User } from "@/backend/models/user.model";
 import { spoyntService } from "@/backend/services/spoynt.service";
+import { countryToAlpha2 } from "@/shared/constants/countries";
 import crypto from "crypto";
 
 const TOKENS_PER_GBP = 100;
@@ -354,7 +355,7 @@ export async function POST(req: NextRequest) {
                     ...(user.name ? { name: user.name } : {}),
                     ...(user.phoneNumber ? { phone: user.phoneNumber } : {}),
                     address: {
-                        ...(user.country ? { country: user.country } : { country: "GB" }),
+                        country: countryToAlpha2(user.country) ?? "GB",
                         ...(user.city ? { city: user.city } : {}),
                         ...(user.street ? { full_address: user.street } : {}),
                         ...(user.postCode ? { post_code: user.postCode } : {}),

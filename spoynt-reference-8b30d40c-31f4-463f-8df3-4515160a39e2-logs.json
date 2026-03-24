@@ -1,0 +1,149 @@
+{
+  "referenceId": "8b30d40c-31f4-463f-8df3-4515160a39e2",
+  "generatedAt": "2026-03-18T18:38:49.816Z",
+  "source": "Structured log extract for a Spoynt payment reference",
+  "summary": {
+    "cpi": "cpi_OM8wiKAhpT2sTpYC",
+    "status": "process_failed",
+    "resolution": "routing_error",
+    "amount": 20.4,
+    "currency": "AUD",
+    "tokens": 1000,
+    "userId": "69b9adfc6590d29733f398ba",
+    "callbackUrl": "https://www.averis.co.uk/api/spoynt/webhook",
+    "callbackLogsCount": 0,
+    "localMongoMatches": 0,
+    "localTextLogMatches": 0
+  },
+  "logs": [
+    {
+      "source": "spoynt.private_api",
+      "event": "invoice.created",
+      "tsUnix": 1773858274,
+      "tsUtc": "2026-03-18T18:24:34.000Z",
+      "tsKyiv": "18 Mar 2026, 20:24:34",
+      "details": {
+        "cpi": "cpi_OM8wiKAhpT2sTpYC",
+        "status": "process_failed",
+        "resolution": "routing_error",
+        "amount": 20.4,
+        "currency": "AUD",
+        "service": "payment_card_aud_hpp",
+        "source": "merchant_api"
+      }
+    },
+    {
+      "source": "spoynt.private_api",
+      "event": "invoice.failed",
+      "tsUnix": 1773858339,
+      "tsUtc": "2026-03-18T18:25:39.000Z",
+      "tsKyiv": "18 Mar 2026, 20:25:39",
+      "details": {
+        "cpi": "cpi_OM8wiKAhpT2sTpYC",
+        "status": "process_failed",
+        "resolution": "routing_error",
+        "failureReason": null,
+        "resolutionMessage": null
+      }
+    },
+    {
+      "source": "spoynt.private_api",
+      "event": "invoice.updated",
+      "tsUnix": 1773858342,
+      "tsUtc": "2026-03-18T18:25:42.000Z",
+      "tsKyiv": "18 Mar 2026, 20:25:42",
+      "details": {
+        "cpi": "cpi_OM8wiKAhpT2sTpYC",
+        "status": "process_failed",
+        "resolution": "routing_error",
+        "callbackLogsCount": 0,
+        "triesCount": 0
+      }
+    },
+    {
+      "source": "local.mongo",
+      "event": "reference.search",
+      "tsUnix": null,
+      "tsUtc": "2026-03-18T18:38:49.816Z",
+      "tsKyiv": "18 Mar 2026, 20:38:49",
+      "details": {
+        "collectionsMatched": 0,
+        "matchedCollections": []
+      }
+    },
+    {
+      "source": "local.text_logs",
+      "event": "reference.search",
+      "tsUnix": null,
+      "tsUtc": "2026-03-18T18:38:49.816Z",
+      "tsKyiv": "18 Mar 2026, 20:38:49",
+      "details": {
+        "matchedFiles": 0,
+        "note": "No local text log files containing this reference were found in the project, ~/Library/Logs, ~/.zsh_history, ~/.npm/_logs, or /tmp."
+      }
+    }
+  ],
+  "providerSnapshot": {
+    "cpi": "cpi_OM8wiKAhpT2sTpYC",
+    "status": "process_failed",
+    "resolution": "routing_error",
+    "amount": 20.4,
+    "paymentAmount": 20.4,
+    "currency": "AUD",
+    "serviceCurrency": "AUD",
+    "service": "payment_card_aud_hpp",
+    "testMode": false,
+    "description": "Averis tokens: 1000",
+    "callbackUrl": "https://www.averis.co.uk/api/spoynt/webhook",
+    "returnUrls": {
+      "fail": "https://www.averis.co.uk/payment/error?reference=8b30d40c-31f4-463f-8df3-4515160a39e2",
+      "pending": "https://www.averis.co.uk/payment/success?reference=8b30d40c-31f4-463f-8df3-4515160a39e2",
+      "success": "https://www.averis.co.uk/payment/success?reference=8b30d40c-31f4-463f-8df3-4515160a39e2"
+    },
+    "flowData": {
+      "action": "https://checkout.bankgate.io/hpp/cgi_MvhcI9diuvKdJ1Ha",
+      "method": "GET",
+      "params": [],
+      "metadata": {
+        "sid": "cgi_MvhcI9diuvKdJ1Ha",
+        "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzaWQiOiJjZ2lfTXZoY0k5ZGl1dktkSjFIYSIsImV4cGlyZXMiOm51bGwsImV4cCI6MTc3Mzg1OTE3NH0.mKORt3EzQreY--KExn1_jLRedvIaA5cGDUVvFwiBXkY"
+      }
+    },
+    "payload": {
+      "token": null,
+      "auth_type": "card",
+      "client_ip": "46.109.26.226",
+      "payment_card": {
+        "last": "1428",
+        "mask": "490847******1428",
+        "type": "credit",
+        "brand": "classic",
+        "first": "490847",
+        "holder": "David Petrov-Dukat",
+        "card_id": "card_xP0BsI1jGZHS2eh7",
+        "network": "visa",
+        "expiry_year": "26",
+        "issuer_name": "CITADELE BANKA",
+        "expiry_month": "07",
+        "reference_id": "70278f94a5cbd70534f28b7f719f92ca4aeffc7b3b8d5b965eab2e94e340c537",
+        "issuer_country": "LV"
+      }
+    },
+    "timestamps": {
+      "createdUnix": 1773858274,
+      "failedUnix": 1773858339,
+      "processedUnix": null,
+      "updatedUnix": 1773858342,
+      "createdUtc": "2026-03-18T18:24:34.000Z",
+      "failedUtc": "2026-03-18T18:25:39.000Z",
+      "processedUtc": null,
+      "updatedUtc": "2026-03-18T18:25:42.000Z",
+      "createdKyiv": "18 Mar 2026, 20:24:34",
+      "failedKyiv": "18 Mar 2026, 20:25:39",
+      "processedKyiv": null,
+      "updatedKyiv": "18 Mar 2026, 20:25:42"
+    },
+    "callbackLogs": []
+  },
+  "localMongoMatches": []
+}

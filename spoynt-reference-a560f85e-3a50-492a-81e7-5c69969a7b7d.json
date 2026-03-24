@@ -1,0 +1,80 @@
+{
+  "referenceId": "a560f85e-3a50-492a-81e7-5c69969a7b7d",
+  "source": "Spoynt payment-invoices API",
+  "paymentInvoice": {
+    "cpi": "cpi_4YeaNyLocLuN5LIW",
+    "status": "process_failed",
+    "resolution": "routing_error",
+    "amount": 20.4,
+    "paymentAmount": 20.4,
+    "currency": "AUD",
+    "serviceAmount": 20.4,
+    "serviceCurrency": "AUD",
+    "service": "payment_card_aud_hpp",
+    "tokens": 1000,
+    "testMode": false,
+    "description": "Averis tokens: 1000",
+    "callbackUrl": "https://www.averis.co.uk/api/spoynt/webhook",
+    "returnUrls": {
+      "fail": "https://www.averis.co.uk/payment/error?reference=a560f85e-3a50-492a-81e7-5c69969a7b7d",
+      "pending": "https://www.averis.co.uk/payment/success?reference=a560f85e-3a50-492a-81e7-5c69969a7b7d",
+      "success": "https://www.averis.co.uk/payment/success?reference=a560f85e-3a50-492a-81e7-5c69969a7b7d"
+    },
+    "metadata": {
+      "tokens": "1000",
+      "user_id": "69b9adfc6590d29733f398ba",
+      "ui_amount": "20.4",
+      "ui_currency": "AUD",
+      "charged_amount": "20.4",
+      "charged_currency": "AUD"
+    },
+    "flowData": {
+      "action": "https://checkout.bankgate.io/hpp/cgi_YePdfBiHARH4FOht",
+      "method": "GET",
+      "params": [],
+      "metadata": {
+        "sid": "cgi_YePdfBiHARH4FOht",
+        "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzaWQiOiJjZ2lfWWVQZGZCaUhBUkg0Rk9odCIsImV4cGlyZXMiOm51bGwsImV4cCI6MTc3MzgzNjUwNn0.pEkCeV_nMOLY3txUZ5FjggHr3ZXC_MSsZ9Ubzh0uN6I"
+      }
+    },
+    "payload": {
+      "authType": "card",
+      "clientIp": "46.109.26.226",
+      "paymentCard": {
+        "last": "2196",
+        "mask": "522714******2196",
+        "type": "debit",
+        "brand": "prepaid",
+        "first": "522714",
+        "holder": "David Petrov-Dukat",
+        "cardId": "card_tftAC6p4EqTyk1DX",
+        "network": "mastercard",
+        "expiryYear": "26",
+        "expiryMonth": "11",
+        "issuerName": "ICARD AD",
+        "issuerCountry": "IT",
+        "referenceId": "a00ba4b6fb50b06fdf90403b89fd5e7f8209aeff62840adb18a47f7c6c76073d"
+      }
+    },
+    "timestamps": {
+      "createdUnix": 1773835606,
+      "failedUnix": 1773835632,
+      "updatedUnix": 1773835635,
+      "createdUtc": "2026-03-18T12:06:46.000Z",
+      "failedUtc": "2026-03-18T12:07:12.000Z",
+      "updatedUtc": "2026-03-18T12:07:15.000Z",
+      "createdKyiv": "18 Mar 2026, 14:06:46",
+      "failedKyiv": "18 Mar 2026, 14:07:12",
+      "updatedKyiv": "18 Mar 2026, 14:07:15"
+    },
+    "callbackLogs": []
+  },
+  "localChecks": {
+    "localMongoPaymentFound": false,
+    "localMongoTransactionFound": false,
+    "siteStatusEndpointWithoutAuth": {
+      "httpStatus": 400,
+      "message": "Missing auth"
+    }
+  }
+}
