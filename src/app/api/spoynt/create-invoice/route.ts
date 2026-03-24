@@ -11,10 +11,18 @@ const RATES_TO_GBP = {
     AUD: 2.04,
     CAD: 1.76,
     NZD: 2.22,
+    GBP: 1,
 } as const;
 const MIN_AMOUNT = 10;
 
 type SupportedCurrency = keyof typeof RATES_TO_GBP;
+
+/** Keywords in Spoynt error responses that indicate the currency/service is not active */
+const INACTIVE_KEYWORDS = [
+    "inactive", "not active", "disabled", "not enabled",
+    "unsupported", "not supported", "unavailable", "not available",
+    "service", "currency",
+];
 
 type ReturnUrls = {
     success: string;
@@ -39,14 +47,11 @@ type CreateInvoiceAttemptArgs = {
     userEmail: string;
     customer?: {
         name?: string;
-        first_name?: string;
-        surname?: string;
         phone?: string;
-        date_of_birth?: string;
         address?: {
-            street?: string;
-            city?: string;
             country?: string;
+            city?: string;
+            full_address?: string;
             post_code?: string;
         };
     };
@@ -142,22 +147,18 @@ async function createSpoyntInvoice({
         data: {
             type: "payment-invoices",
             attributes: {
-                amount,
-                currency,
-                service,
-                flow: "charge",
                 reference_id: referenceId,
-                description: `Averis tokens: ${tokens}`,
-                callback_url: callbackUrl,
+                description: `Averis – ${tokens} tokens`,
+                currency,
+                amount,
+                service,
                 return_urls: returnUrls,
+                callback_url: callbackUrl,
                 customer: {
-                    reference_id: userId,
-                    email: userEmail,
+                    reference_id: referenceId,
                     ...(customer?.name ? { name: customer.name } : {}),
-                    ...(customer?.first_name ? { first_name: customer.first_name } : {}),
-                    ...(customer?.surname ? { surname: customer.surname } : {}),
+                    email: userEmail,
                     ...(customer?.phone ? { phone: customer.phone } : {}),
-                    ...(customer?.date_of_birth ? { date_of_birth: customer.date_of_birth } : {}),
                     ...(customer?.address && Object.keys(customer.address).length > 0
                         ? { address: customer.address }
                         : {}),
@@ -330,38 +331,42 @@ export async function POST(req: NextRequest) {
         const SPOYNT_RETURN_FAIL = assertEnv("SPOYNT_RETURN_FAIL");
         const SPOYNT_RETURN_PENDING = assertEnv("SPOYNT_RETURN_PENDING");
 
+        const referenceId = crypto.randomUUID();
+
         const withReference = (url: string) => {
             const target = new URL(url);
             target.searchParams.set("reference", referenceId);
             return target.toString();
         };
 
-        const referenceId = crypto.randomUUID();
         const returnUrls: ReturnUrls = {
             success: withReference(SPOYNT_RETURN_SUCCESS),
             fail: withReference(SPOYNT_RETURN_FAIL),
             pending: withReference(SPOYNT_RETURN_PENDING),
         };
+
+        // callback_url з uuid= параметром (як в референсі)
+        const callbackUrlWithRef = `${SPOYNT_CALLBACK_URL}?uuid=${referenceId}`;
+
         const customer =
             user
                 ? {
                     ...(user.name ? { name: user.name } : {}),
-                    ...(user.firstName ? { first_name: user.firstName } : {}),
-                    ...(user.lastName ? { surname: user.lastName } : {}),
                     ...(user.phoneNumber ? { phone: user.phoneNumber } : {}),
-                    ...(user.dateOfBirth
-                        ? { date_of_birth: new Date(user.dateOfBirth).toISOString().slice(0, 10) }
-                        : {}),
                     address: {
-                        ...(user.street ? { street: user.street } : {}),
+                        ...(user.country ? { country: user.country } : { country: "GB" }),
                         ...(user.city ? { city: user.city } : {}),
+                        ...(user.street ? { full_address: user.street } : {}),
                         ...(user.postCode ? { post_code: user.postCode } : {}),
                     },
                 }
                 : undefined;
-        const invoiceCurrency: SupportedCurrency = requestedCurrency;
-        const invoiceAmount = requestedAmountInCurrency;
-        const fallbackToGBP = false;
+
+        // ─── Пробуємо запитану валюту, якщо не активна — фолбек на GBP ───
+        let invoiceCurrency: SupportedCurrency = requestedCurrency;
+        let invoiceAmount = requestedAmountInCurrency;
+        let fallbackToGBP = false;
+
         const selectedService = getServiceForCurrency(requestedCurrency);
 
         paymentLog("invoice.service.selected", {
@@ -374,14 +379,15 @@ export async function POST(req: NextRequest) {
             service: selectedService,
             referenceId,
         });
-        const invoiceAttempt = await createSpoyntInvoice({
+
+        let invoiceAttempt = await createSpoyntInvoice({
             baseUrl: SPOYNT_BASE_URL,
             accountId: SPOYNT_ACCOUNT_ID,
             apiKey: SPOYNT_API_KEY,
-            amount: requestedAmountInCurrency,
-            currency: requestedCurrency,
+            amount: invoiceAmount,
+            currency: invoiceCurrency,
             service: selectedService,
-            callbackUrl: SPOYNT_CALLBACK_URL,
+            callbackUrl: callbackUrlWithRef,
             returnUrls,
             referenceId,
             tokens,
@@ -391,15 +397,72 @@ export async function POST(req: NextRequest) {
             userEmail: payload.email,
             customer,
         });
+
         paymentLog("provider.request.finish", {
-            currency: requestedCurrency,
-            amount: requestedAmountInCurrency,
+            currency: invoiceCurrency,
+            amount: invoiceAmount,
             service: selectedService,
             referenceId,
             ok: invoiceAttempt.ok,
             statusCode: invoiceAttempt.status,
             cpi: invoiceAttempt.cpi ?? null,
         });
+
+        // Якщо валюта не активна у Spoynt — пробуємо GBP як фолбек
+        if (
+            !invoiceAttempt.ok &&
+            invoiceCurrency !== "GBP" &&
+            INACTIVE_KEYWORDS.some((kw) => invoiceAttempt.text?.toLowerCase().includes(kw))
+        ) {
+            paymentLog("fallback.triggered", {
+                fromCurrency: invoiceCurrency,
+                toCurrency: "GBP",
+                reason: invoiceAttempt.text,
+            });
+
+            invoiceCurrency = "GBP";
+            invoiceAmount = round2(requestedAmountInCurrency / RATES_TO_GBP[requestedCurrency]); // convert to GBP
+            fallbackToGBP = true;
+            const gbpService = getServiceForCurrency("GBP");
+
+            paymentLog("provider.request.start", {
+                currency: "GBP",
+                amount: invoiceAmount,
+                service: gbpService,
+                referenceId,
+                fallbackFrom: requestedCurrency,
+            });
+
+            invoiceAttempt = await createSpoyntInvoice({
+                baseUrl: SPOYNT_BASE_URL,
+                accountId: SPOYNT_ACCOUNT_ID,
+                apiKey: SPOYNT_API_KEY,
+                amount: invoiceAmount,
+                currency: "GBP",
+                service: gbpService,
+                callbackUrl: callbackUrlWithRef,
+                returnUrls,
+                referenceId,
+                tokens,
+                userId: payload.sub,
+                requestedCurrency,
+                requestedAmount: requestedAmountInCurrency,
+                userEmail: payload.email,
+                customer,
+                fallbackFromCurrency: requestedCurrency,
+            });
+
+            paymentLog("provider.request.finish", {
+                currency: "GBP",
+                amount: invoiceAmount,
+                service: gbpService,
+                referenceId,
+                ok: invoiceAttempt.ok,
+                statusCode: invoiceAttempt.status,
+                cpi: invoiceAttempt.cpi ?? null,
+                fallbackFrom: requestedCurrency,
+            });
+        }
 
         if (!invoiceAttempt?.ok) {
             console.error("[spoynt:create-invoice] provider_error", {
@@ -409,6 +472,7 @@ export async function POST(req: NextRequest) {
                 requestedAmountInCurrency,
                 invoiceCurrency,
                 invoiceAmount,
+                fallbackToGBP,
             });
             return NextResponse.json(
                 { message: "Spoynt create invoice failed", details: invoiceAttempt?.text || "Unknown provider error" },

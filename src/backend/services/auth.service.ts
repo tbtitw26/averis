@@ -92,7 +92,7 @@ export const authService = {
         const accessToken = await signAccessToken({ sub: userId.toString(), email, role });
         // додатково — JWT refresh з payload (sid) для швидкої перевірки підпису:
         const refreshJWT = await signRefreshToken(
-            { sub: userId.toString(), sid: (session as any)._id.toString() },
+            { sub: userId.toString(), sid: session.id },
             ENV.REFRESH_TOKEN_EXPIRES
         );
         // передаємо клієнту: access JWT + "rawRefresh" як cookie значення (але ми дамо саме refreshJWT у cookie, а raw — НЕ віддаємо)

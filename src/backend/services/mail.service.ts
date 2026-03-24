@@ -93,6 +93,106 @@ function buildConfirmationText(payload: ConfirmationPayload) {
     ].join("\n");
 }
 
+function buildWelcomeHtml(user: {
+    email: string;
+    firstName?: string | null;
+    name?: string | null;
+}) {
+    const recipientName = escapeHtml(getRecipientName(user));
+    const pricingUrl = `${ENV.APP_URL}/pricing`;
+    const profileUrl = `${ENV.APP_URL}/profile`;
+    const year = new Date().getFullYear();
+
+    return `
+        <div style="margin:0;padding:32px 16px;background:#eef6f3;font-family:Arial,sans-serif;color:#10231c;">
+            <div style="max-width:680px;margin:0 auto;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #dbeae3;box-shadow:0 18px 48px rgba(16,35,28,0.08);">
+                <div style="padding:40px 40px 28px;background:linear-gradient(135deg,#0f3d2e 0%,#1f7a5a 100%);color:#ffffff;">
+                    <div style="display:inline-block;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,0.14);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">
+                        Welcome to Averis
+                    </div>
+                    <h1 style="margin:18px 0 12px;font-size:34px;line-height:1.15;font-weight:800;color:#ffffff;">
+                        Your account is ready, ${recipientName}.
+                    </h1>
+                    <p style="margin:0;font-size:16px;line-height:1.7;color:rgba(255,255,255,0.86);max-width:520px;">
+                        Registration completed successfully. You can now access your profile, choose a plan, and start your first order.
+                    </p>
+                </div>
+
+                <div style="padding:32px 40px;">
+                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:28px;">
+                        <div style="padding:18px;border-radius:18px;background:#f6fbf9;border:1px solid #dcebe4;">
+                            <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#5b7a6d;margin-bottom:8px;">
+                                Account status
+                            </div>
+                            <div style="font-size:26px;font-weight:800;color:#0f3d2e;">Active</div>
+                        </div>
+                        <div style="padding:18px;border-radius:18px;background:#f6fbf9;border:1px solid #dcebe4;">
+                            <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#5b7a6d;margin-bottom:8px;">
+                                Registered email
+                            </div>
+                            <div style="font-size:18px;font-weight:700;color:#0f172a;word-break:break-word;">${escapeHtml(user.email)}</div>
+                        </div>
+                    </div>
+
+                    <div style="padding:22px 24px;border-radius:20px;background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:28px;">
+                        <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:14px;">What you can do next</div>
+                        <div style="margin:0 0 12px;font-size:15px;line-height:1.7;color:#334155;">
+                            1. Complete your profile details.
+                        </div>
+                        <div style="margin:0 0 12px;font-size:15px;line-height:1.7;color:#334155;">
+                            2. Choose the plan or token amount that fits you.
+                        </div>
+                        <div style="margin:0;font-size:15px;line-height:1.7;color:#334155;">
+                            3. Start your first order and manage it from your account.
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:28px;">
+                        <a href="${profileUrl}" style="display:inline-block;padding:14px 22px;border-radius:12px;background:#0f3d2e;color:#ffffff;text-decoration:none;font-weight:800;margin-right:12px;">
+                            Open Profile
+                        </a>
+                        <a href="${pricingUrl}" style="display:inline-block;padding:14px 22px;border-radius:12px;background:#edf7f2;color:#0f3d2e;text-decoration:none;font-weight:800;border:1px solid #cfe4d9;">
+                            View Pricing
+                        </a>
+                    </div>
+
+                    <div style="padding-top:22px;border-top:1px solid #e2e8f0;font-size:13px;line-height:1.7;color:#64748b;">
+                        If this registration was not made by you, please contact support as soon as possible.
+                    </div>
+                </div>
+
+                <div style="padding:18px 40px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b;">
+                    © ${year} Averis. Your account has been created successfully.
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function buildWelcomeText(user: {
+    email: string;
+    firstName?: string | null;
+    name?: string | null;
+}) {
+    const recipientName = getRecipientName(user);
+
+    return [
+        `Hi ${recipientName},`,
+        "",
+        "Welcome to Averis.",
+        "Your account has been created successfully and is now active.",
+        "",
+        `Registered email: ${user.email}`,
+        `Profile: ${ENV.APP_URL}/profile`,
+        `Pricing: ${ENV.APP_URL}/pricing`,
+        "",
+        "Next steps:",
+        "1. Complete your profile details.",
+        "2. Choose a plan or token amount.",
+        "3. Start your first order.",
+    ].join("\n");
+}
+
 async function deliverConfirmationEmail(payload: ConfirmationPayload) {
     try {
         await sendEmail(
@@ -113,19 +213,16 @@ export async function sendWelcomeEmail(user: {
     firstName?: string | null;
     name?: string | null;
 }) {
-    await deliverConfirmationEmail({
-        user,
-        subject: "Welcome to Averis",
-        summary: "Your account has been created successfully.",
-        amountLabel: "Account status",
-        amountValue: "Active",
-        details: [
-            { label: "Email", value: user.email },
-            { label: "Next step", value: "Sign in and complete your first order" },
-        ],
-        transactionDate: new Date(),
-        ctaPath: "/profile",
-    });
+    try {
+        await sendEmail(
+            user.email,
+            "Welcome to Averis",
+            buildWelcomeText(user),
+            buildWelcomeHtml(user)
+        );
+    } catch (error) {
+        console.error("Welcome email failed:", error);
+    }
 }
 
 export async function sendTransactionReceiptIfNeeded(
@@ -168,7 +265,7 @@ export async function sendTransactionReceiptIfNeeded(
 }
 
 export async function sendOrderConfirmationIfNeeded(
-    model: Model<any>,
+    model: Model<unknown>,
     orderId: string,
     payload: ConfirmationPayload
 ) {

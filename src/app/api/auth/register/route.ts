@@ -9,8 +9,8 @@ export async function POST(req: NextRequest) {
         const res = NextResponse.json({ user }, { status: 200 });
         attachAuthCookies(res, tokens.accessToken, tokens.refreshToken, 60 * 60 * 24 * 30);
         return res;
-    } catch (e: any) {
-        const msg = e?.message || "Registration error";
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Registration error";
         const knownMessages = [
             "registered",
             "required",

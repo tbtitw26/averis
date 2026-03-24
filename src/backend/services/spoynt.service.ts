@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { connectDB } from "@/backend/config/db";
-import { SpoyntPayment } from "@/backend/models/spoyntPayment.model";
+import { SpoyntPayment, SpoyntPaymentDocument } from "@/backend/models/spoyntPayment.model";
 import { Transaction } from "@/backend/models/transaction.model";
 import { User } from "@/backend/models/user.model";
 import { sendEmail } from "@/backend/utils/sendEmail";
@@ -81,7 +81,7 @@ export const spoyntService = {
     async processInvoice(input: SyncPaymentInput): Promise<CreditResult> {
         await connectDB();
 
-        const existing = await SpoyntPayment.findOne({ cpi: input.cpi }).lean();
+        const existing = await SpoyntPayment.findOne({ cpi: input.cpi }).lean<SpoyntPaymentDocument | null>();
         const incomingUpdated = input.providerUpdatedAt ?? null;
         const currentUpdated = existing?.providerUpdatedAt ?? null;
 
@@ -181,7 +181,7 @@ export const spoyntService = {
         );
 
         if (!claimed) {
-            const latest = await SpoyntPayment.findOne({ cpi: input.cpi }).lean();
+            const latest = await SpoyntPayment.findOne({ cpi: input.cpi }).lean<SpoyntPaymentDocument | null>();
 
             if (latest?.creditStatus === "credited") {
                 const user = latest.userId ? await User.findById(latest.userId).lean() : null;
@@ -303,11 +303,11 @@ export const spoyntService = {
 
     async getPaymentByCpi(cpi: string) {
         await connectDB();
-        return SpoyntPayment.findOne({ cpi }).lean();
+        return SpoyntPayment.findOne({ cpi }).lean<SpoyntPaymentDocument | null>();
     },
 
     async getPaymentByReference(referenceId: string) {
         await connectDB();
-        return SpoyntPayment.findOne({ referenceId }).lean();
+        return SpoyntPayment.findOne({ referenceId }).lean<SpoyntPaymentDocument | null>();
     },
 };
