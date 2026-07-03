@@ -93,6 +93,10 @@ const Footer: React.FC = () => {
                         <span>{legal.companyNumber}</span>
                     </div>
                 )}
+                <div className={styles["footer__legal-line"]}>
+                    <span className={styles["footer__legal-label"]}>Address:</span>{" "}
+                    <span>Academy House, 11 Dunraven Place, Bridgend, Mid Glamorgan, United Kingdom, CF31 1JF</span>
+                </div>
                 {contact.email && (
                     <div className={styles["footer__contact-item"]}>
                         <strong>Email: </strong>
